@@ -4,6 +4,7 @@ from swelist.main import app, get_internship_count, get_newgrad_count
 from unittest.mock import patch
 import json
 import urllib.request
+import time
 
 runner = CliRunner()
 
@@ -67,3 +68,35 @@ def test_api_error(mocker):
     
     count = get_internship_count()
     assert count == 0  # Should handle error gracefully
+
+
+def test_run_with_locations(mocker):
+    mock_data = [{
+        "company_name": "Test Company",
+        "title": "Software Engineer",
+        "locations": ["New York, NY", "Remote"],
+        "url": "https://example.com/job",
+        "date_posted": time.time() - 3600
+    }]
+    mock_response = mocker.Mock()
+    mock_response.read.return_value = json.dumps(mock_data).encode()
+    mocker.patch('urllib.request.urlopen', return_value=mock_response)
+    
+    result = runner.invoke(app, ['run'])
+    assert result.exit_code == 0
+    assert "locations: ['New York, NY', 'Remote']" in result.stdout
+
+def test_hello():
+    result = runner.invoke(app, ['hello', 'John'])
+    assert result.exit_code == 0
+    assert "Hello John" in result.stdout
+
+def test_goodbye_informal():
+    result = runner.invoke(app, ['goodbye', 'John'])
+    assert result.exit_code == 0
+    assert "Bye John!" in result.stdout
+
+def test_goodbye_formal():
+    result = runner.invoke(app, ['goodbye', 'John', '--formal'])
+    assert result.exit_code == 0
+    assert "Goodbye Ms. John. Have a good day." in result.stdout
