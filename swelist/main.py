@@ -78,7 +78,7 @@ def run(role="internship", timeframe="lastday"):
         typer.echo(f"No new postings in {timeframe}")
         return
     
-    typer.echo(f"\nFound {len(recent_postings)} postings in the last {'month' if timeframe == "lastmonth" else 'week' if timeframe == "lastweek" else 'day'}:")
+    typer.echo(f"\nFound {len(recent_postings)} postings in {timeframe}")
     
     for posting in recent_postings:
         typer.echo(f"\nCompany: {posting['company_name']}")
