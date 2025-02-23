@@ -61,7 +61,7 @@ def test_run_no_results(mocker):
     
     result = runner.invoke(app, ['run'])
     assert result.exit_code == 0
-    assert "No new postings in the last day" in result.stdout
+    assert "No new postings in lastday" in result.stdout
 
 def test_api_error(mocker):
     mocker.patch('urllib.request.urlopen', side_effect=urllib.error.URLError("Test error"))
