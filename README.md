@@ -20,44 +20,29 @@ pip install swelist
 
 Basic usage:
 ```bash
-swelist
-```
+# Show internship positions from last 24 hours (default)
+swelist run
 
-This will:
-1. Show current statistics for available positions
-2. Prompt you to choose between internship or new-grad roles
-3. Display recent job postings (default: last 24 hours)
+# Show new-grad positions from last 24 hours
+swelist run --role newgrad
 
-### Time Filters
-
-You can view positions from different time periods using the `--timeframe` or `-t` option:
-
-```bash
-# Show positions from last 24 hours (default)
-swelist -t lastday
-
-# Show positions from last week
-swelist -t lastweek
-
-# Show positions from last month
-swelist -t lastmonth
+# Show internship positions from last week
+swelist run --role internship --timeframe lastweek
 ```
 
 ### Options
 
-- `--timeframe`, `-t`: Filter postings by time period [lastday|lastweek|lastmonth]
-- Role selection will be prompted during execution
+- `--role`: Choose between `internship` (default) or `newgrad` positions
+- `--timeframe`: Filter postings by time period: `lastday` (default), `lastweek`, or `lastmonth`
 
 ## Example Output
 
 ```
 Welcome to swelist.com
-Last updated: Sun Feb 23 11:15:03 2025
+Last updated: Sun Feb 23 13:03:45 2025
 Found 1227 tech internships from 2025Summer-Internships
 Found 103 new-grad tech jobs from New-Grad-Positions
 Sign-up below to receive updates when new internships/jobs are added
-
-Are you looking for an internship or a new-grad role? [internship/newgrad]: internship
 
 Found 15 postings in the last day:
 

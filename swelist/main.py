@@ -49,19 +49,12 @@ def print_welcome_message():
     typer.echo(f"Found {newgrad_count} new-grad tech jobs from New-Grad-Positions")
     typer.echo("Sign-up below to receive updates when new internships/jobs are added")
 
-
-@app.callback()
-def main(
-    role: Role = typer.Option(..., prompt="Are you looking for an internship or a new-grad role?"),
-    timeframe: TimeFilter = typer.Option(
-        TimeFilter.lastday,
-        "--timeframe",
-        "-t",
-        help="Show postings from last day, week, or month"
-    )
-):
-    """Search for internships or new-grad positions"""
-    if role == Role.internship:
+@app.command()
+def run(role="internship", timeframe="lastday"):
+    """A CLI tool for job seekers to find internships and new-grad positions"""
+    print_welcome_message()
+    
+    if role == "internship":
         internship_url = "https://raw.githubusercontent.com/SimplifyJobs/Summer2025-Internships/refs/heads/dev/.github/scripts/listings.json"
         response = urllib.request.urlopen(internship_url)
         data = json.load(response)
@@ -74,9 +67,9 @@ def main(
     current_time = time.time()
     time_threshold = 60 * 60 * 24  # 24 hours in seconds
     
-    if timeframe == TimeFilter.lastweek:
+    if timeframe == "lastweek":
         time_threshold = 60 * 60 * 24 * 7  # 7 days in seconds
-    elif timeframe == TimeFilter.lastmonth:
+    elif timeframe == "lastmonth":
         time_threshold = 60 * 60 * 24 * 30  # 30 days in seconds
     
     recent_postings = [x for x in data if abs(x['date_posted']-current_time) < time_threshold]
