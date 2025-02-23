@@ -1,5 +1,11 @@
 # swelist
 
+[![CI](https://github.com/chenyuan99/swelist/actions/workflows/ci.yml/badge.svg)](https://github.com/chenyuan99/swelist/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/chenyuan99/swelist/branch/main/graph/badge.svg)](https://codecov.io/gh/chenyuan99/swelist)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI version](https://badge.fury.io/py/swelist.svg)](https://badge.fury.io/py/swelist)
+[![Python Versions](https://img.shields.io/pypi/pyversions/swelist.svg)](https://pypi.org/project/swelist/)
+
 A CLI tool for job seekers to track tech internships and new-grad positions. Data is sourced from the [Summer2025-Internships](https://github.com/SimplifyJobs/Summer2025-Internships) and [New-Grad-Positions](https://github.com/SimplifyJobs/New-Grad-Positions) repositories.
 
 ## Features
