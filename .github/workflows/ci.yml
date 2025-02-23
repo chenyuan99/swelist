@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    environment: dev
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
@@ -33,7 +34,6 @@ jobs:
         
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
-      environment: dev
       with:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         slug: chenyuan99/swelist
