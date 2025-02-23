@@ -49,14 +49,8 @@ def print_welcome_message():
     typer.echo(f"Found {newgrad_count} new-grad tech jobs from New-Grad-Positions")
     typer.echo("Sign-up below to receive updates when new internships/jobs are added")
 
-@app.callback()
-def callback():
-    """
-    A CLI tool for job seekers to find internships and new-grad positions
-    """
-    print_welcome_message()
 
-@app.command()
+@app.callback()
 def main(
     role: Role = typer.Option(..., prompt="Are you looking for an internship or a new-grad role?"),
     timeframe: TimeFilter = typer.Option(

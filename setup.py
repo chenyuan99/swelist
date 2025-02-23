@@ -10,11 +10,11 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "swelist=main:app",
+            "swelist=swelist.main:app",
         ],
     },
     author="Yuan Chen",
-    author_email="yuanchen@example.com",
+    author_email="yuan.chen@sojoai.com",
     description="A CLI tool for job seekers",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
