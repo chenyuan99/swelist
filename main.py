@@ -4,9 +4,6 @@ import urllib.request
 from datetime import datetime, timedelta
 
 import typer
-import ssl
-
-ssl._create_default_https_context = ssl._create_stdlib_context
 
 app = typer.Typer()
 
@@ -32,6 +29,9 @@ def job():
     current_time = time.time()
     output_dict = [x for x in internship_data if abs(x['date_posted']-current_time) < (60 * 60 * 24)]
     print(output_dict)
+
+def main:
+
 
 
 if __name__ == "__main__":
