@@ -51,7 +51,7 @@ jobs:
 
     environment:
       name: pypi
-      url: https://pypi.org/p/benchmarkllm
+      url: https://pypi.org/p/swelist
 
     steps:
       - name: Retrieve release distributions
