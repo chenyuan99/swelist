@@ -75,10 +75,10 @@ def run(role="internship", timeframe="lastday"):
     recent_postings = [x for x in data if abs(x['date_posted']-current_time) < time_threshold]
     
     if not recent_postings:
-        typer.echo(f"No new postings in the last {'month' if timeframe == TimeFilter.lastmonth else 'week' if timeframe == TimeFilter.lastweek else 'day'}.")
+        typer.echo(f"No new postings in the last {'month' if timeframe == "lastmonth" else 'week' if timeframe == "lastweek" else 'day'}.")
         return
     
-    typer.echo(f"\nFound {len(recent_postings)} postings in the last {'month' if timeframe == TimeFilter.lastmonth else 'week' if timeframe == TimeFilter.lastweek else 'day'}:")
+    typer.echo(f"\nFound {len(recent_postings)} postings in the last {'month' if timeframe == "lastmonth" else 'week' if timeframe == "lastweek" else 'day'}:")
     
     for posting in recent_postings:
         typer.echo(f"\nCompany: {posting['company_name']}")
