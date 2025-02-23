@@ -13,6 +13,11 @@ class Role(str, Enum):
     internship = "internship"
     newgrad = "newgrad"
 
+class TimeFilter(str, Enum):
+    lastday = "lastday"
+    lastweek = "lastweek"
+    lastmonth = "lastmonth"
+
 app = typer.Typer()
 
 def get_internship_count():
@@ -52,7 +57,15 @@ def callback():
     print_welcome_message()
 
 @app.command()
-def main(role: Role = typer.Option(..., prompt="Are you looking for an internship or a new-grad role?")):
+def main(
+    role: Role = typer.Option(..., prompt="Are you looking for an internship or a new-grad role?"),
+    timeframe: TimeFilter = typer.Option(
+        TimeFilter.lastday,
+        "--timeframe",
+        "-t",
+        help="Show postings from last day, week, or month"
+    )
+):
     """Search for internships or new-grad positions"""
     if role == Role.internship:
         internship_url = "https://raw.githubusercontent.com/SimplifyJobs/Summer2025-Internships/refs/heads/dev/.github/scripts/listings.json"
@@ -63,13 +76,22 @@ def main(role: Role = typer.Option(..., prompt="Are you looking for an internshi
         response = urllib.request.urlopen(newgrad_url)
         data = json.load(response)
     
-    # Filter for recent postings (last 24 hours)
+    # Filter for recent postings based on timeframe
     current_time = time.time()
-    recent_postings = [x for x in data if abs(x['date_posted']-current_time) < (60 * 60 * 24)]
+    time_threshold = 60 * 60 * 24  # 24 hours in seconds
+    
+    if timeframe == TimeFilter.lastweek:
+        time_threshold = 60 * 60 * 24 * 7  # 7 days in seconds
+    elif timeframe == TimeFilter.lastmonth:
+        time_threshold = 60 * 60 * 24 * 30  # 30 days in seconds
+    
+    recent_postings = [x for x in data if abs(x['date_posted']-current_time) < time_threshold]
     
     if not recent_postings:
-        typer.echo("No new postings in the last 24 hours.")
+        typer.echo(f"No new postings in the last {'month' if timeframe == TimeFilter.lastmonth else 'week' if timeframe == TimeFilter.lastweek else 'day'}.")
         return
+    
+    typer.echo(f"\nFound {len(recent_postings)} postings in the last {'month' if timeframe == TimeFilter.lastmonth else 'week' if timeframe == TimeFilter.lastweek else 'day'}:")
     
     for posting in recent_postings:
         typer.echo(f"\nCompany: {posting['company_name']}")
@@ -91,15 +113,6 @@ def goodbye(name: str, formal: bool = False):
     else:
         print(f"Bye {name}!")
 
-@app.command()
-def job():
-    internship_url = "https://raw.githubusercontent.com/SimplifyJobs/Summer2025-Internships/refs/heads/dev/.github/scripts/listings.json"
-    response = urllib.request.urlopen(internship_url)
-    internship_data = json.load(response)
-    # Filter python objects with list comprehensions
-    current_time = time.time()
-    output_dict = [x for x in internship_data if abs(x['date_posted']-current_time) < (60 * 60 * 24)]
-    print(output_dict)
 
 if __name__ == "__main__":
     app()
