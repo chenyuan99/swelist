@@ -34,7 +34,6 @@ jobs:
 
       - name: Build release distributions
         run: |
-          cd lmstudio_benchmark
           python -m build
 
       - name: Upload distributions
