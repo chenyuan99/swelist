@@ -3,7 +3,8 @@ import time
 import urllib.request
 from datetime import datetime
 import typer
-from typing import Optional
+from typing import Optional, Annotated
+from rich import print
 from enum import Enum
 import ssl
 
@@ -19,6 +20,21 @@ class TimeFilter(str, Enum):
     lastmonth = "lastmonth"
 
 app = typer.Typer()
+
+__version__ = "0.1.7"
+
+# @app.command()
+def version_callback():
+    print(f"Awesome CLI Version: {__version__}")
+    raise typer.Exit()
+
+def main(
+    version: Annotated[
+        Optional[bool], typer.Option("--version", callback=version_callback)
+    ] = None,
+):
+    pass
+
 
 def get_internship_count():
     try:
@@ -43,11 +59,11 @@ def print_welcome_message():
     internship_count = get_internship_count()
     newgrad_count = get_newgrad_count()
     
-    typer.echo("Welcome to swelist.com")
-    typer.echo(f"Last updated: {current_time}")
-    typer.echo(f"Found {internship_count} tech internships from 2025Summer-Internships")
-    typer.echo(f"Found {newgrad_count} new-grad tech jobs from New-Grad-Positions")
-    typer.echo("Sign-up below to receive updates when new internships/jobs are added")
+    print("[bold]Welcome to swelist.com[/bold]")
+    print(f"Last updated: {current_time}")
+    print(f"Found {internship_count} tech internships from 2025Summer-Internships")
+    print(f"Found {newgrad_count} new-grad tech jobs from New-Grad-Positions")
+    print("Sign-up below to receive updates when new internships/jobs are added")
 
 @app.command()
 def run(role="internship", timeframe="lastday"):
@@ -71,34 +87,24 @@ def run(role="internship", timeframe="lastday"):
         time_threshold = 60 * 60 * 24 * 7  # 7 days in seconds
     elif timeframe == "lastmonth":
         time_threshold = 60 * 60 * 24 * 30  # 30 days in seconds
+
     
     recent_postings = [x for x in data if abs(x['date_posted']-current_time) < time_threshold]
     
     if not recent_postings:
-        typer.echo(f"No new postings in {timeframe}")
+        print(f"No new postings in {timeframe}")
         return
     
-    typer.echo(f"\nFound {len(recent_postings)} postings in {timeframe}")
+    print(f"\nFound {len(recent_postings)} postings in {timeframe}")
     
     for posting in recent_postings:
-        typer.echo(f"\nCompany: {posting['company_name']}")
-        typer.echo(f"Title: {posting['title']}")
+        print(f"\nCompany: {posting['company_name']}")
+        print(f"Title: {posting['title']}")
         if posting.get('location'):
-            typer.echo(f"Location: {posting['location']}")
+            print(f"Location: {posting['location']}")
         if posting.get('locations'):
-            typer.echo(f"locations: {posting['locations']}")
-        typer.echo(f"Link: {posting['url']}")
-
-@app.command()
-def hello(name: str):
-    print(f"Hello {name}")
-
-@app.command()
-def goodbye(name: str, formal: bool = False):
-    if formal:
-        print(f"Goodbye Ms. {name}. Have a good day.")
-    else:
-        print(f"Bye {name}!")
+            print(f"locations: {posting['locations']}")
+        print(f"Link: {posting['url']}")
 
 
 if __name__ == "__main__":
