@@ -27,13 +27,13 @@ pip install swelist
 Basic usage:
 ```bash
 # Show internship positions from last 24 hours (default)
-swelist run
+swelist
 
 # Show new-grad positions from last 24 hours
-swelist run --role newgrad
+swelist --role newgrad
 
 # Show internship positions from last week
-swelist run --role internship --timeframe lastweek
+swelist --role internship --timeframe lastweek
 ```
 
 ### Options
