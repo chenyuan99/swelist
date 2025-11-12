@@ -76,7 +76,7 @@ def filter_by_location(postings, location):
         for user_loc in user_locations:
             for loc_norm in job_locations:
                 if len(user_loc) == 2:  # treat as state code
-                    if loc_norm.endswith(", " + user_loc):
+                    if loc_norm.endswith(user_loc):
                         filtered.append(job)
                         break  # no need to check other job locations
                 else:  # city or country
