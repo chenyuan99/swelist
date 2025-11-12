@@ -12,6 +12,7 @@ A CLI tool for job seekers to track tech internships and new-grad positions. Dat
 
 - Track both internships and new-grad positions
 - Filter job postings by time (last day, week, or month)
+- Filter job postings by locations
 - View company name, job title, location, and application link
 - Real-time data from GitHub repositories
 - Easy-to-use command-line interface
@@ -34,12 +35,19 @@ swelist --role newgrad
 
 # Show internship positions from last week
 swelist --role internship --timeframe lastweek
+
+# Show internship positions for Toronto
+swelist --role internship --location Toronto
+
+# Show new-grad positions for last month for Boston and New York
+swelist --role newgrad --timeframe lastmonth --location "Boston, New York"
 ```
 
 ### Options
 
 - `--role`: Choose between `internship` (default) or `newgrad` positions
 - `--timeframe`: Filter postings by time period: `lastday` (default), `lastweek`, or `lastmonth`
+-  `--location`: Filter locations by giving single location: `Canada` or multiple locations `"CA, Boston, Toronto, NY"`
 
 ## Example Output
 
