@@ -54,6 +54,41 @@ def get_newgrad_count():
     except:
         return 0
 
+# Function to filter by location
+def filter_by_location(postings, location):
+    """Filter job postings by location."""
+    if location.lower() == "all":
+        return postings
+
+    filtered = []
+    # Split input by comma, strip whitespace, lowercase
+    user_locations = [loc.strip().lower() for loc in location.split(",")]
+
+    for job in postings:
+        job_locations = [job_location.lower() for job_location in job.get("locations", [])]
+
+        user_locations = [loc.strip().lower() for loc in location.split(",")]
+        filtered = []
+
+    for job in postings:
+        job_locations = [l.lower() for l in job.get("locations", [])]
+
+        for user_loc in user_locations:
+            for loc_norm in job_locations:
+                if len(user_loc) == 2:  # treat as state code
+                    if loc_norm.endswith(user_loc):
+                        filtered.append(job)
+                        break  # no need to check other job locations
+                else:  # city or country
+                    if user_loc in loc_norm:
+                        filtered.append(job)
+                        break
+            else:
+                continue
+            break  # job already matched one of the user locations
+
+    return filtered
+
 def print_welcome_message():
     current_time = datetime.now().strftime("%c")
     internship_count = get_internship_count()
@@ -66,7 +101,7 @@ def print_welcome_message():
     print("Sign-up below to receive updates when new internships/jobs are added")
 
 @app.command()
-def run(role="internship", timeframe="lastday"):
+def run(role="internship", timeframe="lastday", location="all"):
     """A CLI tool for job seekers to find internships and new-grad positions"""
     print_welcome_message()
     
@@ -78,6 +113,8 @@ def run(role="internship", timeframe="lastday"):
         newgrad_url = "https://raw.githubusercontent.com/SimplifyJobs/New-Grad-Positions/refs/heads/dev/.github/scripts/listings.json"
         response = urllib.request.urlopen(newgrad_url)
         data = json.load(response)
+
+
     
     # Filter for recent postings based on timeframe
     current_time = time.time()
@@ -90,14 +127,22 @@ def run(role="internship", timeframe="lastday"):
 
     
     recent_postings = [x for x in data if abs(x['date_posted']-current_time) < time_threshold]
+
+    # Filter by locations
+    location_based_postings = filter_by_location(recent_postings, location)
     
-    if not recent_postings:
-        print(f"No new postings in {timeframe}")
+    if not location_based_postings:
+        if location.lower() == "all":
+            # No jobs in the selected timeframe at all
+            print(f"No postings found in {timeframe}")
+        else:
+            # No jobs matched both location & timeframe
+            print(f"No postings found for location '{location}' in {timeframe}")
         return
-    
-    print(f"\nFound {len(recent_postings)} postings in {timeframe}")
-    
-    for posting in recent_postings:
+
+    print(f"\nFound {len(location_based_postings)} postings for location '{location}' in {timeframe}")
+
+    for posting in location_based_postings:
         print(f"\nCompany: {posting['company_name']}")
         print(f"Title: {posting['title']}")
         if posting.get('location'):
