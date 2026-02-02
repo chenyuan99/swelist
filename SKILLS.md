@@ -1,4 +1,27 @@
-# swelist --- Agent & Automation Usage Guide
+---
+name: swelist
+description: retrieves recently added technology internship and new‑graduate job postings.
+homepage: https://pypi.org/project/swelist/
+metadata:
+  {
+    "openclaw":
+      {
+        "emoji": "💼",
+        "requires": { "bins": ["swelist"] },
+        "install":
+          [
+            {
+              "id": "uv",
+              "kind": "uv",
+              "package": "swelist",
+              "bins": ["swelist"],
+              "label": "Install swelist (uv)",
+            },
+          ],
+      },
+  }
+---
+# swelist
 
 This document defines the operational capabilities, invocation contract,
 and usage semantics of the `swelist` CLI tool for AI agents, schedulers,
