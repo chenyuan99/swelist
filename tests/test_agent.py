@@ -3,7 +3,6 @@ import subprocess
 import json
 import ast
 import pytest
-from openai import OpenAI
 
 try:
     from dotenv import load_dotenv
@@ -11,8 +10,20 @@ try:
 except ImportError:
     pass
 
-client = OpenAI()
+try:
+    from openai import OpenAI
+    client = OpenAI()
+    HAS_OPENAI = True
+except (ImportError, Exception):
+    HAS_OPENAI = False
+
 SKILLS_PATH = "SKILLS.md"
+
+# Skip all tests in this module if OpenAI is not available or API key is not set
+pytestmark = pytest.mark.skipif(
+    not HAS_OPENAI or not os.getenv("OPENAI_API_KEY"),
+    reason="OpenAI module not installed or API key not set"
+)
 
 
 def run_cmd(cmd: str) -> str:
