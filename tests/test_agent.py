@@ -86,7 +86,7 @@ SKILLS_MD:
 
 def test_swelist_execution():
     """Test swelist command executes and returns job postings."""
-    output = run_cmd("swelist --role internship --timeframe lastday")
+    output = run_cmd("swelist run --role internship --timeframe lastday")
     assert "Company:" in output
     assert "Title:" in output
     assert "Link:" in output
@@ -95,7 +95,7 @@ def test_swelist_execution():
 
 def test_swelist_parsing():
     """Test parsing swelist output into structured JSON."""
-    output = run_cmd("swelist --role internship --timeframe lastday")
+    output = run_cmd("swelist run --role internship --timeframe lastday")
     jobs = parse_job_postings(output)
 
     if jobs:  # Only assert if there are postings
