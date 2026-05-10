@@ -1,7 +1,6 @@
 import os
 import subprocess
-from typing import Optional
-from typing_extensions import Annotated
+from typing import Annotated, Optional
 
 import typer
 from rich import print
