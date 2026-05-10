@@ -24,7 +24,7 @@ app = typer.Typer()
 from swelist.jobgpt import jobgpt_app
 app.add_typer(jobgpt_app, name="jobgpt")
 
-__version__ = "0.1.7"
+__version__ = "0.1.8"
 
 # @app.command()
 def version_callback():
