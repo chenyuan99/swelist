@@ -104,11 +104,15 @@ def print_welcome_message():
     print("Sign-up below to receive updates when new internships/jobs are added")
 
 @app.command()
-def run(role="internship", timeframe="lastday", location="all"):
+def run(
+    role: Annotated[Role, typer.Option(help="Role type: internship or newgrad")] = Role.internship,
+    timeframe: Annotated[TimeFilter, typer.Option(help="Timeframe filter")] = TimeFilter.lastday,
+    location: Annotated[str, typer.Option(help="Location filter")] = "all",
+):
     """A CLI tool for job seekers to find internships and new-grad positions"""
     print_welcome_message()
     
-    if role == "internship":
+    if role == Role.internship:
         internship_url = "https://raw.githubusercontent.com/SimplifyJobs/Summer2025-Internships/refs/heads/dev/.github/scripts/listings.json"
         response = urllib.request.urlopen(internship_url)
         data = json.load(response)
@@ -122,10 +126,10 @@ def run(role="internship", timeframe="lastday", location="all"):
     # Filter for recent postings based on timeframe
     current_time = time.time()
     time_threshold = 60 * 60 * 24  # 24 hours in seconds
-    
-    if timeframe == "lastweek":
+
+    if timeframe == TimeFilter.lastweek:
         time_threshold = 60 * 60 * 24 * 7  # 7 days in seconds
-    elif timeframe == "lastmonth":
+    elif timeframe == TimeFilter.lastmonth:
         time_threshold = 60 * 60 * 24 * 30  # 30 days in seconds
 
     

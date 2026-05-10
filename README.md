@@ -25,6 +25,8 @@ pip install swelist
 
 ## Usage
 
+### Command Line
+
 Basic usage:
 ```bash
 # Show internship positions from last 24 hours (default)
@@ -47,7 +49,40 @@ swelist --role newgrad --timeframe lastmonth --location "Boston, New York"
 
 - `--role`: Choose between `internship` (default) or `newgrad` positions
 - `--timeframe`: Filter postings by time period: `lastday` (default), `lastweek`, or `lastmonth`
--  `--location`: Filter locations by giving single location: `Canada` or multiple locations `"CA, Boston, Toronto, NY"`
+- `--location`: Filter locations by giving single location: `Canada` or multiple locations `"Boston, Toronto, New York"`
+
+### Agent Integration
+
+`swelist` can be integrated into AI automation workflows to parse job postings and convert them to structured JSON:
+
+```python
+import subprocess
+import json
+
+# Get job postings
+output = subprocess.run(['swelist', '--role', 'internship'], capture_output=True, text=True)
+
+# Parse into structured JSON
+jobs = []
+current_job = {}
+for line in output.stdout.splitlines():
+    if line.startswith("Company:"):
+        current_job = {"company": line.split(":", 1)[1].strip()}
+    elif line.startswith("Title:"):
+        current_job["title"] = line.split(":", 1)[1].strip()
+    elif line.startswith("Location:"):
+        current_job["location"] = line.split(":", 1)[1].strip()
+    elif line.startswith("Link:"):
+        current_job["link"] = line.split(":", 1)[1].strip()
+        jobs.append(current_job)
+
+print(json.dumps(jobs, indent=2))
+```
+
+This enables use cases like:
+- Automated daily job tracking agents
+- Integration with AI writing assistants for application workflows
+- Real-time job aggregation pipelines
 
 ## Example Output
 
