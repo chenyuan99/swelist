@@ -7,7 +7,11 @@ setup(
     include_package_data=True,
     install_requires=[
         "typer",
+        "rich",
     ],
+    extras_require={
+        "ai": ["openai>=1.0.0"],
+    },
     entry_points={
         "console_scripts": [
             "swelist=swelist.main:app",
