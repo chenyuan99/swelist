@@ -21,6 +21,9 @@ class TimeFilter(str, Enum):
 
 app = typer.Typer()
 
+from swelist.jobgpt import jobgpt_app
+app.add_typer(jobgpt_app, name="jobgpt")
+
 __version__ = "0.1.7"
 
 # @app.command()
