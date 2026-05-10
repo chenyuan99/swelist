@@ -3,10 +3,13 @@ import subprocess
 import json
 import ast
 import pytest
-from dotenv import load_dotenv
 from openai import OpenAI
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 client = OpenAI()
 SKILLS_PATH = "SKILLS.md"
