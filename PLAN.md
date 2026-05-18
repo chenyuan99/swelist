@@ -16,12 +16,12 @@ where applications are stored. Only the storage operations (Steps 3–4: dedup,
 create, update) differ. The `application-manager` skill will branch at Step 3
 based on `tracker_backend` in `profile.md` — no separate skill file needed.
 
-### 2. sqlite3 CLI via Bash — no Python wrapper yet
+### 2. ~~sqlite3 CLI via Bash~~ → swelist tracker subcommand ✅
 
-`sqlite3` ships with macOS and most Linux distros. Using it via `Bash(sqlite3 ...)`
-keeps the implementation thin and avoids adding a Python dependency or CLI
-subcommand just for storage. A `swelist tracker` subcommand can be added later
-as a convenience viewer.
+Originally planned to use raw `sqlite3` shell commands. Instead, a full
+`swelist tracker` subcommand was added (`swelist/tracker.py`) with `init`,
+`add`, `update`, `get`, `list`, and `export` commands. All DB access —
+including from `application-manager` — now goes through this interface.
 
 ### 3. DB location
 
@@ -105,29 +105,26 @@ with ready-to-copy `sqlite3` shell commands for create, update, and search.
 **MCP permissions note:** SQLite path needs `Bash(sqlite3 *)` in `.claude/settings.json`
 instead of (or in addition to) the Notion MCP tools.
 
-### `swelist/` Python package (optional, later)
+### `swelist/` Python package ✅
 
-Add `swelist tracker` subcommand for viewing the local DB without running the skill:
-
-```
-swelist tracker list [--status <status>] [--company <name>]
-swelist tracker export [--format csv|json]
-```
-
-This is a convenience feature — the skill works without it.
+`swelist tracker` subcommand shipped in `swelist/tracker.py` with six commands:
+`init`, `add`, `update`, `get`, `list`, `export`. 21 tests, 100% coverage.
+`application-manager` uses `swelist tracker add/update/get` instead of raw `sqlite3`.
 
 ### `.claude/settings.local.json`
 
-Add `Bash(sqlite3 *)` to the allow list for SQLite users.
+~~Add `Bash(sqlite3 *)` to the allow list for SQLite users.~~
+No longer needed — all DB access goes through `swelist tracker` which is covered
+by the existing `Bash(python *)` or the installed `swelist` binary.
 
 ---
 
-## Implementation Order
+## Implementation Order ✅ (all complete)
 
-1. `profile.md` — add `tracker_backend` and `sqlite_db_path` fields
-2. `application-manager.md` — add Step 0 init logic + Step 3/4 branching
-3. Run `./install-skills.sh` to sync updated skills to `~/.claude/`
-4. (Optional) `swelist tracker` CLI subcommand + tests
+1. ✅ `profile.md` — added `tracker_backend` and `sqlite_db_path` fields
+2. ✅ `application-manager.md` — Step 0 init logic + Step 3/4 branching
+3. ✅ Run `./install-skills.sh` to sync updated skills to `~/.claude/`
+4. ✅ `swelist tracker` CLI subcommand with full CRUD + tests
 
 ---
 
@@ -136,8 +133,8 @@ Add `Bash(sqlite3 *)` to the allow list for SQLite users.
 | | Notion | SQLite |
 |---|---|---|
 | Setup | Notion account + DB ID | None (sqlite3 built-in) |
-| UI | Web, rich properties | sqlite3 CLI or any DB browser |
+| UI | Web, rich properties | `swelist tracker list` or any DB browser |
 | Offline | No | Yes |
-| Export | Manual | `sqlite3 -csv db.db "SELECT * FROM applications;"` |
+| Export | Manual | `swelist tracker export --format csv` |
 | MCP needed | Yes (Gmail + Notion) | Gmail only |
 | Shareable | Yes (Notion collab) | No |

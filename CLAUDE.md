@@ -13,6 +13,12 @@ python -m build                 # build distribution artifacts
 twine check dist/*              # validate package before publishing
 swelist run                     # list recent internship postings
 swelist jobgpt ask "..."        # AI career advice (requires OPENAI_API_KEY)
+swelist tracker init            # create local SQLite application tracker
+swelist tracker add "Co — Role" --status "In progress"
+swelist tracker update "Co — Role" --status "Rejected"
+swelist tracker get "Co — Role" # JSON lookup (exit 1 if not found)
+swelist tracker list            # display all tracked applications
+swelist tracker export --format json
 ```
 
 Python 3.9–3.12 supported. Install dev deps: `pip install -r requirements.txt`
@@ -25,6 +31,7 @@ Python 3.9–3.12 supported. Install dev deps: `pip install -r requirements.txt`
 swelist/               Python package (CLI source)
   main.py              swelist run — job listings from SimplifyJobs GitHub repos
   jobgpt.py            swelist jobgpt — OpenAI-powered interview prep subcommands
+  tracker.py           swelist tracker — local SQLite application tracker (add/update/get/list/export)
   agent.py             prototype: parses swelist output into JSON via LLM
 tests/                 pytest suite
 skills/                Claude Code skill files (see Skill System below)
@@ -42,9 +49,10 @@ README.md              user-facing documentation
 
 **Entry point**: `swelist` (typer app in `swelist/main.py`)
 
-Two top-level commands:
+Three top-level commands:
 - `swelist run` — fetches live job JSON from GitHub, filters by timeframe/location, prints plain text
 - `swelist jobgpt <subcommand>` — delegates to `swelist/jobgpt.py` (requires `openai` extra)
+- `swelist tracker <subcommand>` — local SQLite application tracker (`swelist/tracker.py`); subcommands: `init`, `add`, `update`, `get`, `list`, `export`
 
 **Key conventions**:
 - Output is always plain text to stdout — no JSON, no color — so it can be piped to agents
@@ -120,6 +128,7 @@ The `application-manager` skill needs these MCP tools allowed in `.claude/settin
 pytest                          # all tests
 pytest tests/test_main.py       # job listing tests only
 pytest tests/test_jobgpt.py     # jobgpt tests only (mocks OpenAI)
+pytest tests/test_tracker.py    # tracker tests (21 tests, 100% coverage)
 pytest --co -q                  # list all test names without running
 ```
 

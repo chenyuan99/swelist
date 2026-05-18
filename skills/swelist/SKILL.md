@@ -146,12 +146,57 @@ Local SQLite tracker for job applications synced from Gmail.
 
 ``` bash
 # Resolve DB_PATH from profile.md first, then:
-swelist tracker init [--db DB_PATH]
-swelist tracker list [--status S] [--company C] [--db DB_PATH]
+swelist tracker init   [--db DB_PATH]
+swelist tracker add    "<Company — Role>" --status <S> [--job-id <id>] [--applied-on YYYY-MM-DD] [--db DB_PATH]
+swelist tracker update "<Company — Role>" --status <S> [--notes <text>] [--db DB_PATH]
+swelist tracker get    "<Company — Role>" [--db DB_PATH]     # JSON; exit 1 + null if not found
+swelist tracker list   [--status S] [--company C] [--db DB_PATH]
 swelist tracker export [--format csv|json] [--db DB_PATH]
 ```
 
-If the DB does not exist yet, run `tracker init` before `tracker list` or `tracker export`.
+If the DB does not exist yet, run `tracker init` before any other tracker command.
+
+### tracker add output sample
+
+Input: `swelist tracker add "Stripe — Backend Engineer" --status "In progress" --job-id S789 --applied-on 2026-05-18`
+
+```
+Added: Stripe — Backend Engineer → In progress
+```
+
+Input (duplicate):
+
+```
+Skipped (already exists): Stripe — Backend Engineer
+```
+
+### tracker update output sample
+
+Input: `swelist tracker update "Amazon — SDE, AWS" --status "Rejected"`
+
+```
+Updated: Amazon — SDE, AWS → Rejected
+```
+
+Input (not found):
+
+```
+Not found: Acme — Engineer
+```
+
+### tracker get output sample
+
+Input: `swelist tracker get "Amazon — SDE, AWS"`
+
+```json
+{"name": "Amazon — SDE, AWS", "status": "Rejected", "job_id": "10414382", "applied_on": "2026-05-17", "notes": null, "updated_at": "2026-05-18 01:10:00"}
+```
+
+Input (not found) — exits with code 1:
+
+```json
+null
+```
 
 ### tracker list output sample
 

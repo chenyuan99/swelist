@@ -15,7 +15,8 @@ A CLI tool for job seekers to track tech internships and new-grad positions. Dat
 - Filter job postings by locations
 - View company name, job title, location, and application link
 - Real-time data from GitHub repositories
-- Easy-to-use command-line interface
+- Local SQLite application tracker (`swelist tracker`)
+- AI-powered interview prep via `swelist jobgpt`
 
 ## Installation
 
@@ -50,6 +51,29 @@ swelist --role newgrad --timeframe lastmonth --location "Boston, New York"
 - `--role`: Choose between `internship` (default) or `newgrad` positions
 - `--timeframe`: Filter postings by time period: `lastday` (default), `lastweek`, or `lastmonth`
 - `--location`: Filter locations by giving single location: `Canada` or multiple locations `"Boston, Toronto, New York"`
+
+### Application Tracker
+
+Track job applications locally with SQLite — no account required:
+
+```bash
+# Initialize (once)
+swelist tracker init
+
+# Add applications
+swelist tracker add "Amazon — SDE, AWS" --status "In progress" --job-id 10414382 --applied-on 2026-05-17
+
+# Update status
+swelist tracker update "Amazon — SDE, AWS" --status "Rejected"
+
+# View all
+swelist tracker list
+swelist tracker list --status "In progress" --company amazon
+
+# Export
+swelist tracker export --format json
+swelist tracker export --format csv
+```
 
 ### Agent Integration
 
