@@ -1,4 +1,4 @@
-# offerplus-cli (swelist)
+# swelist (github.com/chenyuan99/swelist)
 
 A Python CLI toolkit for job seekers published to PyPI as `swelist`. The repo also ships
 a set of Claude Code skills for managing job applications via Gmail and Notion.
