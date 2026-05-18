@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Installs Claude Code skills from skills/ into ~/.claude/skills/
+# Each skill is a folder under skills/ containing a SKILL.md file.
 # Usage: ./install-skills.sh [--check]
 
 set -euo pipefail
@@ -11,11 +12,6 @@ CHECK_ONLY=false
 if [[ "${1:-}" == "--check" ]]; then
   CHECK_ONLY=true
 fi
-
-# Skills that install as a single README.md inside a named folder
-SKILL_FILES=(
-  "application-manager.md"
-)
 
 # Files that install flat into ~/.claude/ (not as a skill folder)
 GLOBAL_FILES=(
@@ -31,18 +27,19 @@ echo "Source : $SKILLS_DIR"
 echo "Dest   : $DEST_DIR"
 echo ""
 
-for file in "${SKILL_FILES[@]}"; do
-  src="$SKILLS_DIR/$file"
-  skill_name="${file%.md}"
+# Skill folders — each must contain a SKILL.md
+for skill_dir in "$SKILLS_DIR"/*/; do
+  skill_name="$(basename "$skill_dir")"
+  src="$skill_dir/SKILL.md"
   dest_dir="$DEST_DIR/$skill_name"
   dest="$dest_dir/SKILL.md"
 
   if [[ ! -f "$src" ]]; then
-    echo "  MISSING  $file (expected at $src)"
+    echo "  MISSING  $skill_name/SKILL.md"
     continue
   fi
 
-  # Remove legacy README.md if present (SKILL.md is now canonical)
+  # Remove legacy README.md if present (SKILL.md is canonical)
   if [[ -f "$dest_dir/README.md" && "$CHECK_ONLY" == false ]]; then
     rm "$dest_dir/README.md"
   fi
@@ -68,6 +65,7 @@ for file in "${SKILL_FILES[@]}"; do
   fi
 done
 
+# Global files — install flat into ~/.claude/
 for file in "${GLOBAL_FILES[@]}"; do
   src="$SKILLS_DIR/$file"
   dest="$HOME/.claude/$file"
