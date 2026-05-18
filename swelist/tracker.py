@@ -114,7 +114,7 @@ def tracker_export(
     conn.close()
 
     if format == "json":
-        print(json.dumps([dict(r) for r in rows], indent=2))
+        print(json.dumps([dict(r) for r in rows], indent=2, ensure_ascii=False))
     else:
         buf = io.StringIO()
         writer = csv.DictWriter(buf, fieldnames=["name", "status", "job_id", "applied_on", "notes", "updated_at"])

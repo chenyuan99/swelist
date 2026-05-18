@@ -44,8 +44,8 @@ Paste resume text here, or provide a file path:
 
 ### Tracker Backend
 
-- **Tracker backend:** notion  _(notion | sqlite)_
-- **SQLite DB path:** ~/.offerplus/applications.db  _(only needed when backend is sqlite)_
+- **Tracker backend:** sqlite
+- **SQLite DB path:** ~/.offerplus/applications.db
 
 ### Notion
 
