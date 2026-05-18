@@ -136,11 +136,22 @@ swelist --role internship --timeframe lastmonth --location CA
 
 Local SQLite tracker for job applications synced from Gmail.
 
+**Before invoking any tracker command, read `~/.claude/profile.md`:**
+
+1. Check `Integrations > Tracker Backend` — if `tracker_backend` is `notion`,
+   the tracker subcommand is not applicable; use the `application-manager` skill instead.
+2. If `tracker_backend` is `sqlite` (or blank, defaulting to sqlite for local use),
+   read `SQLite DB path` from profile.md. Use that value as `--db PATH`.
+   Fall back to `~/.offerplus/applications.db` only if the field is blank.
+
 ``` bash
-swelist tracker init [--db PATH]     # initialize DB (default: ~/.offerplus/applications.db)
-swelist tracker list [--status S] [--company C] [--db PATH]
-swelist tracker export [--format csv|json] [--db PATH]
+# Resolve DB_PATH from profile.md first, then:
+swelist tracker init [--db DB_PATH]
+swelist tracker list [--status S] [--company C] [--db DB_PATH]
+swelist tracker export [--format csv|json] [--db DB_PATH]
 ```
+
+If the DB does not exist yet, run `tracker init` before `tracker list` or `tracker export`.
 
 ### tracker list output sample
 
