@@ -42,6 +42,11 @@ for file in "${SKILL_FILES[@]}"; do
     continue
   fi
 
+  # Remove legacy SKILL.md if present (README.md takes precedence)
+  if [[ -f "$dest_dir/SKILL.md" && "$CHECK_ONLY" == false ]]; then
+    rm "$dest_dir/SKILL.md"
+  fi
+
   if [[ -f "$dest" ]]; then
     if diff -q "$src" "$dest" > /dev/null 2>&1; then
       skipped+=("$skill_name (up to date)")
