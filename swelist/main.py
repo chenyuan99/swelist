@@ -26,7 +26,7 @@ from swelist.tracker import tracker_app
 app.add_typer(jobgpt_app, name="jobgpt")
 app.add_typer(tracker_app, name="tracker")
 
-__version__ = "0.1.8"
+__version__ = "0.1.9"
 
 # @app.command()
 def version_callback():
