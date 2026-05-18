@@ -1,0 +1,26 @@
+name: Publish Skills to ClawHub
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "skills/**"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install clawhub CLI
+        run: npm install -g clawhub
+
+      - name: Authenticate
+        run: clawhub login --token ${{ secrets.CLAWHUB_TOKEN }} --no-browser
+
+      - name: Sync skills
+        run: clawhub sync --all --bump patch --changelog "Released via CI"
