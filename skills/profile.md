@@ -42,7 +42,14 @@ Paste resume text here, or provide a file path:
 
 ## Integrations
 
+### Tracker Backend
+
+- **Tracker backend:** notion  _(notion | sqlite)_
+- **SQLite DB path:** ~/.offerplus/applications.db  _(only needed when backend is sqlite)_
+
 ### Notion
+
+_(only needed when tracker backend is notion)_
 
 - **Career tracker database ID:** _(UUID from the Notion database URL)_
 - **Career tracker URL:**
@@ -67,7 +74,7 @@ Which sections each skill uses — so you know what to fill in:
 
 | Skill | Sections needed |
 |---|---|
-| `application-manager` | Integrations (Notion + Gmail), Personal Info (career email) |
+| `application-manager` | Integrations (Tracker Backend + Gmail + Notion or SQLite), Personal Info (career email) |
 | `resume-tailor` | Personal Info, Career Profile, Resume |
 | `cover-letter-generator` | Personal Info, Career Profile, Resume |
 | `interview-prep-generator` | Personal Info, Career Profile, Resume |
