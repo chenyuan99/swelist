@@ -1,6 +1,27 @@
 ---
 name: Application Manager
 description: Sync job application statuses from Gmail into Notion or a local SQLite database
+version: 1.0.0
+metadata:
+  openclaw:
+    emoji: "📋"
+    requires:
+      bins: []
+      env: []
+      mcp:
+        - name: claude_ai_Gmail
+          reason: Search and read job application emails
+          optional: false
+        - name: claude_ai_Notion
+          reason: Create and update application entries in Notion
+          optional: true
+    config:
+      - key: tracker_backend
+        description: Storage backend — notion or sqlite
+        default: notion
+      - key: sqlite_db_path
+        description: Path to SQLite database (sqlite backend only)
+        default: ~/.offerplus/applications.db
 ---
 
 # Application Manager

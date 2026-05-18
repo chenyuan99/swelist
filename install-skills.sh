@@ -35,16 +35,16 @@ for file in "${SKILL_FILES[@]}"; do
   src="$SKILLS_DIR/$file"
   skill_name="${file%.md}"
   dest_dir="$DEST_DIR/$skill_name"
-  dest="$dest_dir/README.md"
+  dest="$dest_dir/SKILL.md"
 
   if [[ ! -f "$src" ]]; then
     echo "  MISSING  $file (expected at $src)"
     continue
   fi
 
-  # Remove legacy SKILL.md if present (README.md takes precedence)
-  if [[ -f "$dest_dir/SKILL.md" && "$CHECK_ONLY" == false ]]; then
-    rm "$dest_dir/SKILL.md"
+  # Remove legacy README.md if present (SKILL.md is now canonical)
+  if [[ -f "$dest_dir/README.md" && "$CHECK_ONLY" == false ]]; then
+    rm "$dest_dir/README.md"
   fi
 
   if [[ -f "$dest" ]]; then
