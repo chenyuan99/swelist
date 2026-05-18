@@ -87,6 +87,7 @@ Example:
 
 ``` bash
 swelist --role newgrad
+swelist --role internship --timeframe lastweek --location "Seattle, Remote"
 ```
 
 ------------------------------------------------------------------------
@@ -105,6 +106,7 @@ Example:
 
 ``` bash
 swelist --timeframe lastweek
+swelist --role newgrad --timeframe lastmonth --location "New York, Boston"
 ```
 
 ------------------------------------------------------------------------
@@ -117,12 +119,15 @@ Filters job postings by geographic location.
   -------------------------------- --------------------------------------------------
   Single location                  `Canada` or `Toronto`
   Multiple locations (comma-separated) `"Boston, New York, Remote"`
+  State code (2-letter)            `CA` matches "San Francisco, CA"
 
 Example:
 
 ``` bash
 swelist --location Toronto
 swelist --location "Boston, New York, Remote"
+swelist --role newgrad --timeframe lastweek --location "San Francisco, Remote"
+swelist --role internship --timeframe lastmonth --location CA
 ```
 
 ------------------------------------------------------------------------
@@ -135,6 +140,62 @@ Local SQLite tracker for job applications synced from Gmail.
 swelist tracker init [--db PATH]     # initialize DB (default: ~/.offerplus/applications.db)
 swelist tracker list [--status S] [--company C] [--db PATH]
 swelist tracker export [--format csv|json] [--db PATH]
+```
+
+### tracker list output sample
+
+Input: `swelist tracker list`
+
+```
+ Application                                    Status        Job ID      Applied       Updated
+ Amazon — Software Development Engineer, AWS    In progress   10414382    2026-05-17    2026-05-17 18:30:00
+ Amazon — Software Development Engineer         In progress   3146673     2026-04-21    2026-04-21 20:50:00
+ Amazon — Software Development Engineer, Playback Team  Rejected  3083065  2025-12-02  2025-12-02 17:20:00
+
+3 application(s)
+```
+
+Input: `swelist tracker list --status "In progress" --company amazon`
+
+```
+ Application                                    Status        Job ID      Applied       Updated
+ Amazon — Software Development Engineer, AWS    In progress   10414382    2026-05-17    2026-05-17 18:30:00
+ Amazon — Software Development Engineer         In progress   3146673     2026-04-21    2026-04-21 20:50:00
+
+2 application(s)
+```
+
+### tracker export output sample
+
+Input: `swelist tracker export --format json`
+
+```json
+[
+  {
+    "name": "Amazon — Software Development Engineer, AWS",
+    "status": "In progress",
+    "job_id": "10414382",
+    "applied_on": "2026-05-17",
+    "notes": null,
+    "updated_at": "2026-05-17 18:30:00"
+  },
+  {
+    "name": "Amazon — Software Development Engineer, Playback Team",
+    "status": "Rejected",
+    "job_id": "3083065",
+    "applied_on": "2025-12-02",
+    "notes": null,
+    "updated_at": "2025-12-02 17:20:00"
+  }
+]
+```
+
+Input: `swelist tracker export --format csv`
+
+```
+name,status,job_id,applied_on,notes,updated_at
+Amazon — Software Development Engineer,In progress,3146673,2026-04-21,,2026-04-21 20:50:00
+Amazon — Software Development Engineer Playback Team,Rejected,3083065,2025-12-02,,2025-12-02 17:20:00
 ```
 
 ------------------------------------------------------------------------
@@ -151,15 +212,51 @@ Each job entry contains:
 
 -   Company (string)
 -   Title (string)
--   Location (string)
+-   Location (string) — may be a single string or a list
 -   Link (URL)
 
-Example:
+### Realistic output sample
 
-    Company: Example Corp
-    Title: Software Engineer Intern
-    Location: Remote
-    Link: https://example.com/apply
+Input: `swelist --role internship --timeframe lastweek --location "Seattle, Remote"`
+
+```
+Welcome to swelist.com
+Last updated: Sun May 17 18:42:01 2026
+Found 1284 tech internships from 2025Summer-Internships
+Found 892 new-grad tech jobs from New-Grad-Positions
+Sign-up below to receive updates when new internships/jobs are added
+
+Found 3 postings for location 'Seattle, Remote' in TimeFilter.lastweek
+
+Company: Amazon
+Title: Software Development Engineer Intern
+locations: ['Seattle, WA', 'Remote']
+Link: https://www.amazon.jobs/en/jobs/2345678
+
+Company: Microsoft
+Title: Software Engineering Intern
+locations: ['Redmond, WA', 'Remote']
+Link: https://jobs.careers.microsoft.com/us/en/job/1234567
+
+Company: Stripe
+Title: Software Engineer, Intern
+locations: ['Remote']
+Link: https://stripe.com/jobs/listing/software-engineer-intern/9876543
+```
+
+### Empty-result output
+
+When no postings match the filters:
+
+```
+# No jobs in the selected timeframe:
+No postings found in TimeFilter.lastday
+
+# Jobs exist but none match the location:
+No postings found for location 'Austin' in TimeFilter.lastday
+```
+
+Agents should treat either message as a zero-result signal and not retry with the same flags.
 
 ------------------------------------------------------------------------
 
@@ -280,6 +377,23 @@ jobgpt ask "What should I focus on in my first internship?"
 jobgpt ask "How do I negotiate salary?" --copy
 ```
 
+**Sample output:**
+
+```
+╭─ Career Advice ────────────────────────────────────────────────────╮
+│                                                                     │
+│  Focus on three things in your first internship:                   │
+│                                                                     │
+│  1. **Shipping something real** — even a small feature that goes   │
+│     to production teaches you more than any tutorial.              │
+│  2. **Building relationships** — your intern cohort and your       │
+│     manager are your longest-lasting professional network.         │
+│  3. **Asking good questions** — juniors who ask precise, well-     │
+│     researched questions are remembered positively.                │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
 ------------------------------------------------------------------------
 
 ### why-company
@@ -332,6 +446,31 @@ jobgpt behavioral "Question here" [--resume path/to/resume.txt]
 ``` bash
 jobgpt behavioral "Tell me about a time you dealt with conflict on a team"
 jobgpt behavioral "Describe your biggest failure and how you learned from it" --resume resume.txt --copy
+```
+
+**Sample output:**
+
+```
+╭─ STAR Answer ───────────────────────────────────────────────────────╮
+│                                                                      │
+│  **Situation:** During my internship at Acme, our team disagreed    │
+│  on the API design for a new service — two engineers wanted REST,   │
+│  one pushed for GraphQL.                                            │
+│                                                                      │
+│  **Task:** As the engineer writing the initial spec, I needed to    │
+│  drive us to a decision before our sprint planning the next day.    │
+│                                                                      │
+│  **Action:** I drafted a one-page trade-off doc comparing latency,  │
+│  client complexity, and team familiarity for both options, then     │
+│  scheduled a 30-minute sync. I proposed REST with a versioning      │
+│  convention that addressed the GraphQL advocate's flexibility       │
+│  concerns.                                                          │
+│                                                                      │
+│  **Result:** We reached consensus in 20 minutes. The service        │
+│  shipped on time and has had zero breaking-change incidents in      │
+│  six months.                                                        │
+│                                                                      │
+╰──────────────────────────────────────────────────────────────────────╯
 ```
 
 ------------------------------------------------------------------------
