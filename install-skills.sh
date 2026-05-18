@@ -18,6 +18,14 @@ GLOBAL_FILES=(
   "profile.md"
 )
 
+# Maps ClawHub folder name → Claude Code skill name when they differ.
+claude_skill_name() {
+  case "$1" in
+    job-application-manager) echo "application-manager" ;;
+    *) echo "$1" ;;
+  esac
+}
+
 stale=()
 installed=()
 skipped=()
@@ -30,8 +38,9 @@ echo ""
 # Skill folders — each must contain a SKILL.md
 for skill_dir in "$SKILLS_DIR"/*/; do
   skill_name="$(basename "$skill_dir")"
+  claude_name="$(claude_skill_name "$skill_name")"
   src="$skill_dir/SKILL.md"
-  dest_dir="$DEST_DIR/$skill_name"
+  dest_dir="$DEST_DIR/$claude_name"
   dest="$dest_dir/SKILL.md"
 
   if [[ ! -f "$src" ]]; then
