@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>swelist — Job search, on autopilot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50:  '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              300: '#93c5fd',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+              950: '#172554',
+            }
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .gradient-hero {
+      background: linear-gradient(135deg, #172554 0%, #1e3a8a 40%, #1d4ed8 100%);
+    }
+    .gradient-text {
+      background: linear-gradient(90deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .card-glow:hover {
+      box-shadow: 0 0 0 1px #3b82f6, 0 8px 32px rgba(59,130,246,0.15);
+    }
+    .code-block {
+      background: #0f172a;
+      border: 1px solid #1e40af;
+    }
+    .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.6s ease forwards; }
+    .fade-up-1 { animation-delay: 0.1s; opacity: 0; }
+    .fade-up-2 { animation-delay: 0.25s; opacity: 0; }
+    .fade-up-3 { animation-delay: 0.4s; opacity: 0; }
+    .ticker-track {
+      display: flex;
+      animation: ticker 28s linear infinite;
+      width: max-content;
+    }
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+  </style>
+</head>
+<body class="bg-white text-gray-900 antialiased">
+
+<!-- ── NAV ─────────────────────────────────────────────────────────────── -->
+<nav class="sticky top-0 z-50 bg-brand-950/95 backdrop-blur border-b border-brand-800">
+  <div class="max-w-7xl mx-auto px-6 flex items-center justify-between h-14">
+    <div class="flex items-center gap-8">
+      <a href="#" class="text-white font-bold text-lg tracking-tight">swelist</a>
+      <div class="hidden md:flex items-center gap-6 text-sm text-brand-200">
+        <a href="#run"     class="hover:text-white transition">CLI</a>
+        <a href="#tracker" class="hover:text-white transition">Tracker</a>
+        <a href="#skills"  class="hover:text-white transition">Skills</a>
+        <a href="#jobgpt"  class="hover:text-white transition">jobgpt</a>
+        <a href="https://github.com/chenyuan99/swelist" target="_blank" class="hover:text-white transition">Docs</a>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="https://github.com/chenyuan99/swelist" target="_blank"
+         class="text-sm text-brand-200 hover:text-white transition hidden sm:block">GitHub</a>
+      <a href="https://pypi.org/project/swelist/" target="_blank"
+         class="text-sm bg-brand-600 hover:bg-brand-500 text-white px-4 py-1.5 rounded-md font-medium transition">
+        pip install swelist
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ─────────────────────────────────────────────────────────────── -->
+<section class="gradient-hero text-white min-h-[88vh] flex flex-col items-center justify-center text-center px-6 py-24">
+  <div class="fade-up fade-up-1 inline-flex items-center gap-2 bg-brand-800/60 border border-brand-600 rounded-full px-4 py-1.5 text-sm text-brand-200 mb-8">
+    <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+    v0.1.9 — now with application tracker
+  </div>
+
+  <h1 class="fade-up fade-up-1 text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-tight max-w-4xl mb-6">
+    Find jobs.<br/>
+    <span class="gradient-text">Track applications.</span><br/>
+    Ace interviews.
+  </h1>
+
+  <p class="fade-up fade-up-2 text-brand-200 text-xl max-w-2xl mb-10 leading-relaxed">
+    swelist is an open-source CLI for tech job seekers — real-time job listings,
+    a local SQLite application tracker, and AI-powered interview prep. No account required.
+  </p>
+
+  <div class="fade-up fade-up-2 flex flex-col sm:flex-row items-center gap-4 mb-12">
+    <a href="https://pypi.org/project/swelist/" target="_blank"
+       class="bg-brand-600 hover:bg-brand-500 text-white font-semibold px-8 py-3 rounded-lg transition text-base">
+      Install from PyPI
+    </a>
+    <a href="https://github.com/chenyuan99/swelist" target="_blank"
+       class="border border-brand-500 text-brand-100 hover:bg-brand-800 px-8 py-3 rounded-lg transition text-base">
+      View on GitHub
+    </a>
+  </div>
+
+  <!-- Install snippet -->
+  <div class="fade-up fade-up-3 code-block rounded-xl w-full max-w-lg text-left p-4">
+    <div class="flex gap-2 mb-3">
+      <span class="terminal-dot bg-red-500"></span>
+      <span class="terminal-dot bg-yellow-400"></span>
+      <span class="terminal-dot bg-green-500"></span>
+    </div>
+    <code class="font-mono text-sm">
+      <span class="text-brand-400">$</span>
+      <span class="text-white"> pip install swelist</span><br/>
+      <span class="text-brand-400">$</span>
+      <span class="text-white"> swelist run --role newgrad --location "San Francisco, Remote"</span><br/>
+      <span class="text-green-400">Found 22 postings in TimeFilter.lastweek</span>
+    </code>
+  </div>
+</section>
+
+<!-- ── TICKER ────────────────────────────────────────────────────────────── -->
+<div class="bg-brand-950 border-y border-brand-800 py-3 overflow-hidden">
+  <div class="ticker-track text-brand-300 text-sm font-mono gap-16">
+    <span class="whitespace-nowrap px-8">swelist run</span>
+    <span class="whitespace-nowrap px-8">swelist tracker add</span>
+    <span class="whitespace-nowrap px-8">swelist jobgpt ask</span>
+    <span class="whitespace-nowrap px-8">swelist tracker list</span>
+    <span class="whitespace-nowrap px-8">swelist tracker export --format json</span>
+    <span class="whitespace-nowrap px-8">swelist jobgpt behavioral</span>
+    <span class="whitespace-nowrap px-8">swelist tracker update</span>
+    <span class="whitespace-nowrap px-8">pip install swelist</span>
+    <!-- duplicate for seamless loop -->
+    <span class="whitespace-nowrap px-8">swelist run</span>
+    <span class="whitespace-nowrap px-8">swelist tracker add</span>
+    <span class="whitespace-nowrap px-8">swelist jobgpt ask</span>
+    <span class="whitespace-nowrap px-8">swelist tracker list</span>
+    <span class="whitespace-nowrap px-8">swelist tracker export --format json</span>
+    <span class="whitespace-nowrap px-8">swelist jobgpt behavioral</span>
+    <span class="whitespace-nowrap px-8">swelist tracker update</span>
+    <span class="whitespace-nowrap px-8">pip install swelist</span>
+  </div>
+</div>
+
+<!-- ── THREE PILLARS ─────────────────────────────────────────────────────── -->
+<section class="bg-gray-50 py-24 px-6">
+  <div class="max-w-7xl mx-auto">
+    <p class="text-brand-600 font-semibold text-sm uppercase tracking-widest text-center mb-3">Everything you need</p>
+    <h2 class="text-4xl font-bold text-center mb-4">One tool for your entire job search</h2>
+    <p class="text-gray-500 text-center max-w-xl mx-auto mb-16">swelist covers the full lifecycle — from discovering open roles to tracking every application and preparing for each interview.</p>
+
+    <div class="grid md:grid-cols-3 gap-6">
+      <!-- run -->
+      <a href="#run" class="card-glow bg-white border border-gray-200 rounded-2xl p-8 transition cursor-pointer block">
+        <div class="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center mb-5">
+          <svg class="w-6 h-6 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+        <h3 class="text-xl font-bold mb-2">swelist run</h3>
+        <p class="text-gray-500 leading-relaxed">Real-time internship and new-grad listings from SimplifyJobs. Filter by role, timeframe, and location. Stateless, no auth needed.</p>
+        <div class="mt-4 text-brand-600 text-sm font-medium">Learn more →</div>
+      </a>
+
+      <!-- tracker -->
+      <a href="#tracker" class="card-glow bg-white border border-brand-200 rounded-2xl p-8 transition cursor-pointer block ring-1 ring-brand-200">
+        <div class="w-12 h-12 bg-brand-600 rounded-xl flex items-center justify-center mb-5">
+          <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        </div>
+        <div class="inline-flex items-center gap-1.5 bg-brand-100 text-brand-700 text-xs font-semibold px-2.5 py-1 rounded-full mb-3">★ New in 0.1.9</div>
+        <h3 class="text-xl font-bold mb-2">swelist tracker</h3>
+        <p class="text-gray-500 leading-relaxed">Local SQLite application tracker. Add, update, query, list, and export your applications. No cloud account — your data stays local.</p>
+        <div class="mt-4 text-brand-600 text-sm font-medium">Learn more →</div>
+      </a>
+
+      <!-- jobgpt -->
+      <a href="#jobgpt" class="card-glow bg-white border border-gray-200 rounded-2xl p-8 transition cursor-pointer block">
+        <div class="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center mb-5">
+          <svg class="w-6 h-6 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        </div>
+        <h3 class="text-xl font-bold mb-2">swelist jobgpt</h3>
+        <p class="text-gray-500 leading-relaxed">AI-powered interview prep. Generate STAR answers, "why this company" responses, and career Q&A — powered by OpenAI GPT-4o.</p>
+        <div class="mt-4 text-brand-600 text-sm font-medium">Learn more →</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── RUN SECTION ───────────────────────────────────────────────────────── -->
+<section id="run" class="py-24 px-6 bg-white">
+  <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
+    <div>
+      <p class="text-brand-600 font-semibold text-sm uppercase tracking-widest mb-3">swelist run</p>
+      <h2 class="text-4xl font-bold mb-5">Live job listings, filtered your way</h2>
+      <p class="text-gray-500 text-lg leading-relaxed mb-8">Pull real-time tech internship and new-grad postings straight from curated GitHub repositories. Filter by role type, recency, and any number of locations — no login, no API key.</p>
+      <div class="space-y-4">
+        <div class="flex gap-3">
+          <div class="w-6 h-6 bg-brand-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg class="w-3.5 h-3.5 text-brand-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </div>
+          <p class="text-gray-600"><span class="font-semibold text-gray-800">--role</span> — internship or newgrad</p>
+        </div>
+        <div class="flex gap-3">
+          <div class="w-6 h-6 bg-brand-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg class="w-3.5 h-3.5 text-brand-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </div>
+          <p class="text-gray-600"><span class="font-semibold text-gray-800">--timeframe</span> — lastday, lastweek, lastmonth</p>
+        </div>
+        <div class="flex gap-3">
+          <div class="w-6 h-6 bg-brand-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg class="w-3.5 h-3.5 text-brand-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </div>
+          <p class="text-gray-600"><span class="font-semibold text-gray-800">--location</span> — single or comma-separated cities / state codes</p>
+        </div>
+        <div class="flex gap-3">
+          <div class="w-6 h-6 bg-brand-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg class="w-3.5 h-3.5 text-brand-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </div>
+          <p class="text-gray-600">Plain-text output — pipe directly to AI agents or scripts</p>
+        </div>
+      </div>
+    </div>
+    <div class="code-block rounded-2xl overflow-hidden">
+      <div class="flex items-center gap-2 px-5 py-4 border-b border-brand-900">
+        <span class="terminal-dot bg-red-500"></span>
+        <span class="terminal-dot bg-yellow-400"></span>
+        <span class="terminal-dot bg-green-500"></span>
+        <span class="ml-3 text-brand-400 text-xs font-mono">terminal</span>
+      </div>
+      <div class="p-5 font-mono text-sm leading-relaxed">
+        <p><span class="text-brand-400">$</span> <span class="text-white">swelist run --role newgrad --timeframe lastweek --location "San Francisco, Remote"</span></p>
+        <br/>
+        <p class="text-brand-300">Welcome to swelist.com</p>
+        <p class="text-brand-300">Found 1284 tech internships · 892 new-grad jobs</p>
+        <br/>
+        <p class="text-green-400">Found 22 postings for 'San Francisco, Remote'</p>
+        <br/>
+        <p class="text-white">Company: <span class="text-brand-300">Amazon</span></p>
+        <p class="text-white">Title: <span class="text-brand-300">Software Development Engineer Intern</span></p>
+        <p class="text-white">Locations: <span class="text-brand-300">['Seattle, WA', 'Remote']</span></p>
+        <p class="text-white">Link: <span class="text-brand-400">https://amazon.jobs/...</span></p>
+        <br/>
+        <p class="text-white">Company: <span class="text-brand-300">Stripe</span></p>
+        <p class="text-white">Title: <span class="text-brand-300">Software Engineer, Intern</span></p>
+        <p class="text-white">Locations: <span class="text-brand-300">['Remote']</span></p>
+        <p class="text-white">Link: <span class="text-brand-400">https://stripe.com/jobs/...</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TRACKER SECTION ───────────────────────────────────────────────────── -->
+<section id="tracker" class="py-24 px-6 bg-brand-950 text-white">
+  <div class="max-w-7xl mx-auto">
+    <div class="text-center mb-16">
+      <p class="text-brand-400 font-semibold text-sm uppercase tracking-widest mb-3">swelist tracker</p>
+      <h2 class="text-4xl font-bold mb-5">Your applications, fully under control</h2>
+      <p class="text-brand-200 text-lg max-w-2xl mx-auto">A local SQLite tracker that lives on your machine. No subscriptions, no cloud sync — just fast, private application management from the command line.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+      <div class="bg-brand-900/60 border border-brand-700 rounded-xl p-6">
+        <div class="text-brand-400 font-mono text-xs mb-2">tracker init</div>
+        <h4 class="font-semibold mb-1">Initialize</h4>
+        <p class="text-brand-300 text-sm">Create the local SQLite database. Safe to re-run — idempotent.</p>
+      </div>
+      <div class="bg-brand-900/60 border border-brand-700 rounded-xl p-6">
+        <div class="text-brand-400 font-mono text-xs mb-2">tracker add</div>
+        <h4 class="font-semibold mb-1">Add</h4>
+        <p class="text-brand-300 text-sm">Record a new application with status, job ID, and applied date. Skips silently if it already exists.</p>
+      </div>
+      <div class="bg-brand-900/60 border border-brand-700 rounded-xl p-6">
+        <div class="text-brand-400 font-mono text-xs mb-2">tracker update</div>
+        <h4 class="font-semibold mb-1">Update</h4>
+        <p class="text-brand-300 text-sm">Change the status or notes of any application. Validates against the four allowed statuses.</p>
+      </div>
+      <div class="bg-brand-900/60 border border-brand-700 rounded-xl p-6">
+        <div class="text-brand-400 font-mono text-xs mb-2">tracker get</div>
+        <h4 class="font-semibold mb-1">Get</h4>
+        <p class="text-brand-300 text-sm">JSON lookup by exact name — perfect for agent-driven deduplication. Exit 1 when not found.</p>
+      </div>
+      <div class="bg-brand-900/60 border border-brand-700 rounded-xl p-6">
+        <div class="text-brand-400 font-mono text-xs mb-2">tracker list</div>
+        <h4 class="font-semibold mb-1">List</h4>
+        <p class="text-brand-300 text-sm">Rich table view with color-coded statuses. Filter by status or company name partial match.</p>
+      </div>
+      <div class="bg-brand-900/60 border border-brand-700 rounded-xl p-6">
+        <div class="text-brand-400 font-mono text-xs mb-2">tracker export</div>
+        <h4 class="font-semibold mb-1">Export</h4>
+        <p class="text-brand-300 text-sm">Dump all applications to CSV or JSON for spreadsheets, dashboards, or agent pipelines.</p>
+      </div>
+    </div>
+
+    <div class="code-block rounded-2xl overflow-hidden max-w-3xl mx-auto">
+      <div class="flex items-center gap-2 px-5 py-4 border-b border-brand-900">
+        <span class="terminal-dot bg-red-500"></span>
+        <span class="terminal-dot bg-yellow-400"></span>
+        <span class="terminal-dot bg-green-500"></span>
+        <span class="ml-3 text-brand-400 text-xs font-mono">tracker demo</span>
+      </div>
+      <div class="p-5 font-mono text-sm leading-loose">
+        <p><span class="text-brand-400">$</span> <span class="text-white">swelist tracker init</span></p>
+        <p class="text-green-400">Tracker initialized at ~/.offerplus/applications.db</p>
+        <br/>
+        <p><span class="text-brand-400">$</span> <span class="text-white">swelist tracker add "OpenAI — Software Engineer" --status "In progress" --applied-on 2026-05-11</span></p>
+        <p class="text-green-400">Added: OpenAI — Software Engineer → In progress</p>
+        <br/>
+        <p><span class="text-brand-400">$</span> <span class="text-white">swelist tracker update "OpenAI — Software Engineer" --status "Rejected"</span></p>
+        <p class="text-green-400">Updated: OpenAI — Software Engineer → Rejected</p>
+        <br/>
+        <p><span class="text-brand-400">$</span> <span class="text-white">swelist tracker list --status "In progress"</span></p>
+        <p class="text-brand-300">┌─────────────────────────────────┬──────────────┬────────────┐</p>
+        <p class="text-brand-300">│ Application                     │ Status       │ Applied    │</p>
+        <p class="text-brand-300">├─────────────────────────────────┼──────────────┼────────────┤</p>
+        <p class="text-brand-300">│ Netflix — SWE 4 - Ads Eng.     │ <span class="text-yellow-400">In progress</span>  │ 2026-04-28 │</p>
+        <p class="text-brand-300">│ Anthropic — Research Platform   │ <span class="text-yellow-400">In progress</span>  │ 2026-04-25 │</p>
+        <p class="text-brand-300">└─────────────────────────────────┴──────────────┴────────────┘</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SKILLS SECTION ────────────────────────────────────────────────────── -->
+<section id="skills" class="py-24 px-6 bg-white">
+  <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
+    <div class="code-block rounded-2xl overflow-hidden order-2 lg:order-1">
+      <div class="flex items-center gap-2 px-5 py-4 border-b border-brand-900">
+        <span class="terminal-dot bg-red-500"></span>
+        <span class="terminal-dot bg-yellow-400"></span>
+        <span class="terminal-dot bg-green-500"></span>
+        <span class="ml-3 text-brand-400 text-xs font-mono">application-manager skill</span>
+      </div>
+      <div class="p-5 font-mono text-sm leading-relaxed text-brand-300">
+        <p><span class="text-blue-400">STEP 0</span>  Read profile.md → tracker_backend = sqlite</p>
+        <p class="ml-8 text-brand-400">DB_PATH = ~/.offerplus/applications.db</p>
+        <br/>
+        <p><span class="text-blue-400">STEP 1</span>  Search Gmail for application emails</p>
+        <p class="ml-8 text-green-400">→ Found 36 threads</p>
+        <br/>
+        <p><span class="text-blue-400">STEP 2</span>  Parse threads → applications[]</p>
+        <p class="ml-8">Amazon — SDE, AWS   → <span class="text-yellow-400">In progress</span></p>
+        <p class="ml-8">Red Hat — SWE       → <span class="text-red-400">Rejected</span></p>
+        <br/>
+        <p><span class="text-blue-400">STEP 3</span>  Dedup via swelist tracker get</p>
+        <p><span class="text-blue-400">STEP 4</span>  swelist tracker add / update</p>
+        <br/>
+        <p class="text-green-400">✔ Synced 36 application(s) [backend: sqlite]</p>
+      </div>
+    </div>
+    <div class="order-1 lg:order-2">
+      <p class="text-brand-600 font-semibold text-sm uppercase tracking-widest mb-3">Claude Code Skills</p>
+      <h2 class="text-4xl font-bold mb-5">Works with your AI agent</h2>
+      <p class="text-gray-500 text-lg leading-relaxed mb-6">swelist ships two Claude Code skills, published on <a href="https://clawhub.ai" class="text-brand-600 hover:underline">ClawHub</a>. Install them once and your AI agent can sync Gmail job emails directly into your local tracker — or Notion.</p>
+      <div class="space-y-4 mb-8">
+        <div class="flex gap-4 items-start">
+          <div class="w-10 h-10 bg-brand-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <span class="text-brand-700 text-lg">📋</span>
+          </div>
+          <div>
+            <p class="font-semibold">application-manager</p>
+            <p class="text-gray-500 text-sm">Syncs Gmail application emails → SQLite or Notion. Reads profile.md for your config automatically.</p>
+          </div>
+        </div>
+        <div class="flex gap-4 items-start">
+          <div class="w-10 h-10 bg-brand-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <span class="text-brand-700 text-lg">💼</span>
+          </div>
+          <div>
+            <p class="font-semibold">swelist</p>
+            <p class="text-gray-500 text-sm">Full agent contract for swelist CLI — job listings, tracker CRUD, and jobgpt — so agents invoke it correctly.</p>
+          </div>
+        </div>
+      </div>
+      <div class="code-block rounded-lg p-4 text-sm font-mono">
+        <span class="text-brand-400">$</span>
+        <span class="text-white"> clawhub skill install job-application-manager</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── JOBGPT SECTION ─────────────────────────────────────────────────────── -->
+<section id="jobgpt" class="py-24 px-6 bg-gray-50">
+  <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
+    <div>
+      <p class="text-brand-600 font-semibold text-sm uppercase tracking-widest mb-3">swelist jobgpt</p>
+      <h2 class="text-4xl font-bold mb-5">Ace every interview</h2>
+      <p class="text-gray-500 text-lg leading-relaxed mb-8">Three AI-powered subcommands — powered by GPT-4o — to help you prepare compelling answers and career advice, right from your terminal.</p>
+      <div class="space-y-6">
+        <div class="bg-white border border-gray-200 rounded-xl p-5">
+          <code class="text-brand-700 font-mono text-sm">jobgpt ask "How do I negotiate salary?"</code>
+          <p class="text-gray-500 text-sm mt-2">Ask any career or job-search question and get a direct, expert answer.</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-5">
+          <code class="text-brand-700 font-mono text-sm">jobgpt why-company "Stripe" --background "5 years backend, payments focus"</code>
+          <p class="text-gray-500 text-sm mt-2">Generate a compelling "why this company" answer tailored to your background.</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-5">
+          <code class="text-brand-700 font-mono text-sm">jobgpt behavioral "Tell me about a time you dealt with conflict" --resume ./resume.txt</code>
+          <p class="text-gray-500 text-sm mt-2">Get a polished STAR-format answer grounded in your actual experience.</p>
+        </div>
+      </div>
+    </div>
+    <div class="code-block rounded-2xl overflow-hidden">
+      <div class="flex items-center gap-2 px-5 py-4 border-b border-brand-900">
+        <span class="terminal-dot bg-red-500"></span>
+        <span class="terminal-dot bg-yellow-400"></span>
+        <span class="terminal-dot bg-green-500"></span>
+        <span class="ml-3 text-brand-400 text-xs font-mono">jobgpt output</span>
+      </div>
+      <div class="p-5 font-mono text-sm leading-relaxed">
+        <p class="text-brand-400">╭─ STAR Answer ──────────────────────────────╮</p>
+        <p class="text-brand-400">│</p>
+        <p class="text-white">│ <span class="text-brand-300 font-semibold">Situation:</span> During my internship at Acme,</p>
+        <p class="text-white">│ our team disagreed on the API design for a</p>
+        <p class="text-white">│ new service — REST vs GraphQL.</p>
+        <p class="text-brand-400">│</p>
+        <p class="text-white">│ <span class="text-brand-300 font-semibold">Task:</span> As the engineer writing the initial</p>
+        <p class="text-white">│ spec, I needed to drive us to a decision.</p>
+        <p class="text-brand-400">│</p>
+        <p class="text-white">│ <span class="text-brand-300 font-semibold">Action:</span> I drafted a one-page trade-off doc</p>
+        <p class="text-white">│ and scheduled a 30-minute sync.</p>
+        <p class="text-brand-400">│</p>
+        <p class="text-white">│ <span class="text-brand-300 font-semibold">Result:</span> Consensus in 20 minutes. Shipped</p>
+        <p class="text-white">│ on time, zero breaking changes in 6 months.</p>
+        <p class="text-brand-400">│</p>
+        <p class="text-brand-400">╰────────────────────────────────────────────╯</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── QUICK START ─────────────────────────────────────────────────────────── -->
+<section class="py-24 px-6 bg-brand-950 text-white">
+  <div class="max-w-4xl mx-auto text-center">
+    <h2 class="text-4xl font-bold mb-4">Get started in seconds</h2>
+    <p class="text-brand-200 text-lg mb-12">No account. No config file. Just install and run.</p>
+
+    <div class="space-y-4 text-left">
+      <div class="flex gap-4 items-start">
+        <span class="w-7 h-7 bg-brand-600 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">1</span>
+        <div class="flex-1">
+          <p class="text-brand-200 text-sm mb-2">Install</p>
+          <div class="code-block rounded-lg p-4 font-mono text-sm">
+            <span class="text-brand-400">$</span> <span class="text-white">pip install swelist</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-4 items-start">
+        <span class="w-7 h-7 bg-brand-600 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">2</span>
+        <div class="flex-1">
+          <p class="text-brand-200 text-sm mb-2">Find jobs</p>
+          <div class="code-block rounded-lg p-4 font-mono text-sm">
+            <span class="text-brand-400">$</span> <span class="text-white">swelist run --role newgrad --timeframe lastweek --location "New York, Remote"</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-4 items-start">
+        <span class="w-7 h-7 bg-brand-600 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">3</span>
+        <div class="flex-1">
+          <p class="text-brand-200 text-sm mb-2">Track applications</p>
+          <div class="code-block rounded-lg p-4 font-mono text-sm space-y-1">
+            <p><span class="text-brand-400">$</span> <span class="text-white">swelist tracker init</span></p>
+            <p><span class="text-brand-400">$</span> <span class="text-white">swelist tracker add "Stripe — Backend Engineer" --status "In progress"</span></p>
+            <p><span class="text-brand-400">$</span> <span class="text-white">swelist tracker list</span></p>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-4 items-start">
+        <span class="w-7 h-7 bg-brand-600 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">4</span>
+        <div class="flex-1">
+          <p class="text-brand-200 text-sm mb-2">Prep for interviews  <span class="text-brand-400 text-xs">(requires OPENAI_API_KEY)</span></p>
+          <div class="code-block rounded-lg p-4 font-mono text-sm">
+            <span class="text-brand-400">$</span> <span class="text-white">swelist jobgpt behavioral "Tell me about a time you led a team" --resume ./resume.txt</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FAQ ────────────────────────────────────────────────────────────────── -->
+<section class="py-24 px-6 bg-white">
+  <div class="max-w-3xl mx-auto">
+    <h2 class="text-4xl font-bold text-center mb-12">Common questions</h2>
+    <div class="space-y-4" x-data="{open: null}">
+
+      <details class="border border-gray-200 rounded-xl group">
+        <summary class="flex items-center justify-between p-6 cursor-pointer font-semibold">
+          Where does the job data come from?
+          <svg class="w-5 h-5 text-gray-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <div class="px-6 pb-6 text-gray-500">Live JSON from the <a href="https://github.com/SimplifyJobs/Summer2025-Internships" class="text-brand-600 hover:underline">SimplifyJobs/Summer2025-Internships</a> and <a href="https://github.com/SimplifyJobs/New-Grad-Positions" class="text-brand-600 hover:underline">SimplifyJobs/New-Grad-Positions</a> GitHub repositories. Data is fetched at runtime — no caching, always fresh.</div>
+      </details>
+
+      <details class="border border-gray-200 rounded-xl group">
+        <summary class="flex items-center justify-between p-6 cursor-pointer font-semibold">
+          Does the tracker require an account or cloud service?
+          <svg class="w-5 h-5 text-gray-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <div class="px-6 pb-6 text-gray-500">No. The tracker writes to a local SQLite file at <code class="bg-gray-100 px-1 rounded text-sm">~/.offerplus/applications.db</code>. Nothing leaves your machine. You can also use Notion as an alternative backend via the <code class="bg-gray-100 px-1 rounded text-sm">application-manager</code> Claude Code skill.</div>
+      </details>
+
+      <details class="border border-gray-200 rounded-xl group">
+        <summary class="flex items-center justify-between p-6 cursor-pointer font-semibold">
+          Is jobgpt free?
+          <svg class="w-5 h-5 text-gray-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <div class="px-6 pb-6 text-gray-500">jobgpt requires your own <code class="bg-gray-100 px-1 rounded text-sm">OPENAI_API_KEY</code>. Install the <code class="bg-gray-100 px-1 rounded text-sm">ai</code> extra: <code class="bg-gray-100 px-1 rounded text-sm">pip install swelist[ai]</code>. The swelist run and tracker subcommands are completely free with no API key needed.</div>
+      </details>
+
+      <details class="border border-gray-200 rounded-xl group">
+        <summary class="flex items-center justify-between p-6 cursor-pointer font-semibold">
+          What are the Claude Code skills?
+          <svg class="w-5 h-5 text-gray-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <div class="px-6 pb-6 text-gray-500">swelist ships two skills for Claude Code (the Anthropic CLI agent). The <strong>swelist</strong> skill teaches Claude how to invoke every CLI subcommand correctly. The <strong>application-manager</strong> skill lets Claude search your Gmail for application emails and sync them directly into your local tracker or Notion — automatically. Install via <code class="bg-gray-100 px-1 rounded text-sm">clawhub skill install job-application-manager</code>.</div>
+      </details>
+
+      <details class="border border-gray-200 rounded-xl group">
+        <summary class="flex items-center justify-between p-6 cursor-pointer font-semibold">
+          What Python versions are supported?
+          <svg class="w-5 h-5 text-gray-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <div class="px-6 pb-6 text-gray-500">Python 3.7 and above, on macOS, Linux, and Windows. CI runs against 3.9, 3.10, 3.11, and 3.12.</div>
+      </details>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ─────────────────────────────────────────────────────────────────── -->
+<section class="gradient-hero py-24 px-6 text-white text-center">
+  <h2 class="text-4xl font-bold mb-4">Start your job search smarter</h2>
+  <p class="text-brand-200 text-lg mb-10 max-w-xl mx-auto">Free, open source, and built for developers. One install, three superpowers.</p>
+  <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+    <a href="https://pypi.org/project/swelist/" target="_blank"
+       class="bg-white text-brand-700 hover:bg-brand-50 font-bold px-8 py-3 rounded-lg transition text-base">
+      Install from PyPI
+    </a>
+    <a href="https://github.com/chenyuan99/swelist" target="_blank"
+       class="border border-brand-400 text-white hover:bg-brand-800 px-8 py-3 rounded-lg transition text-base">
+      Star on GitHub ★
+    </a>
+  </div>
+  <div class="mt-8 code-block rounded-lg inline-block px-6 py-3 font-mono text-sm">
+    <span class="text-brand-400">$</span> <span class="text-white">pip install swelist</span>
+  </div>
+</section>
+
+<!-- ── FOOTER ──────────────────────────────────────────────────────────────── -->
+<footer class="bg-brand-950 text-brand-300 py-12 px-6">
+  <div class="max-w-7xl mx-auto grid md:grid-cols-4 gap-8 mb-10">
+    <div>
+      <div class="text-white font-bold text-lg mb-3">swelist</div>
+      <p class="text-sm text-brand-400 leading-relaxed">Open-source job search toolkit for tech job seekers. Find jobs, track applications, ace interviews.</p>
+    </div>
+    <div>
+      <div class="text-white font-semibold text-sm mb-4">Product</div>
+      <ul class="space-y-2 text-sm">
+        <li><a href="#run" class="hover:text-white transition">CLI (swelist run)</a></li>
+        <li><a href="#tracker" class="hover:text-white transition">Tracker</a></li>
+        <li><a href="#jobgpt" class="hover:text-white transition">jobgpt</a></li>
+        <li><a href="#skills" class="hover:text-white transition">Claude Skills</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="text-white font-semibold text-sm mb-4">Resources</div>
+      <ul class="space-y-2 text-sm">
+        <li><a href="https://github.com/chenyuan99/swelist" target="_blank" class="hover:text-white transition">GitHub</a></li>
+        <li><a href="https://pypi.org/project/swelist/" target="_blank" class="hover:text-white transition">PyPI</a></li>
+        <li><a href="https://clawhub.ai" target="_blank" class="hover:text-white transition">ClawHub Skills</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="text-white font-semibold text-sm mb-4">Install</div>
+      <div class="code-block rounded-lg p-3 font-mono text-xs">
+        pip install swelist
+      </div>
+      <div class="code-block rounded-lg p-3 font-mono text-xs mt-2">
+        pip install swelist[ai]
+      </div>
+    </div>
+  </div>
+  <div class="max-w-7xl mx-auto border-t border-brand-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+    <p>© 2026 swelist · MIT License</p>
+    <div class="flex gap-6">
+      <a href="https://github.com/chenyuan99/swelist" target="_blank" class="hover:text-white transition">GitHub</a>
+      <a href="https://pypi.org/project/swelist/" target="_blank" class="hover:text-white transition">PyPI</a>
+      <a href="https://clawhub.ai" target="_blank" class="hover:text-white transition">ClawHub</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
