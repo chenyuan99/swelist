@@ -101,6 +101,82 @@ def tracker_list(
     print(f"\n[dim]{len(rows)} application(s)[/dim]")
 
 
+@tracker_app.command("add")
+def tracker_add(
+    name: str = typer.Argument(help='Application name e.g. "Amazon — SDE, AWS"'),
+    status: str = typer.Option("Not started", help="Status: Not started | In progress | Rejected | Done"),
+    job_id: Optional[str] = typer.Option(None, help="Job ID from the posting"),
+    applied_on: Optional[str] = typer.Option(None, help="Date applied (YYYY-MM-DD)"),
+    notes: Optional[str] = typer.Option(None, help="Free-text notes"),
+    db: str = typer.Option(DEFAULT_DB, help="Path to SQLite database"),
+):
+    """Add a new application (skips silently if name already exists)."""
+    if status not in STATUS_VALUES:
+        print(f"[red]Invalid status '{status}'. Choose from: {', '.join(sorted(STATUS_VALUES))}[/red]")
+        raise typer.Exit(1)
+    conn = _connect(db)
+    cursor = conn.execute(
+        "INSERT OR IGNORE INTO applications (name, status, job_id, applied_on, notes) VALUES (?, ?, ?, ?, ?)",
+        (name, status, job_id, applied_on, notes),
+    )
+    conn.commit()
+    conn.close()
+    if cursor.rowcount:
+        print(f"[green]Added:[/green] {name} → {status}")
+    else:
+        print(f"[yellow]Skipped (already exists):[/yellow] {name}")
+
+
+@tracker_app.command("update")
+def tracker_update(
+    name: str = typer.Argument(help='Application name to update'),
+    status: str = typer.Option(..., help="New status: Not started | In progress | Rejected | Done"),
+    notes: Optional[str] = typer.Option(None, help="Replace notes (omit to leave unchanged)"),
+    db: str = typer.Option(DEFAULT_DB, help="Path to SQLite database"),
+):
+    """Update the status (and optionally notes) of an existing application."""
+    if status not in STATUS_VALUES:
+        print(f"[red]Invalid status '{status}'. Choose from: {', '.join(sorted(STATUS_VALUES))}[/red]")
+        raise typer.Exit(1)
+    conn = _connect(db)
+    if notes is not None:
+        cursor = conn.execute(
+            "UPDATE applications SET status=?, notes=?, updated_at=datetime('now') WHERE name=?",
+            (status, notes, name),
+        )
+    else:
+        cursor = conn.execute(
+            "UPDATE applications SET status=?, updated_at=datetime('now') WHERE name=?",
+            (status, name),
+        )
+    conn.commit()
+    conn.close()
+    if cursor.rowcount:
+        print(f"[green]Updated:[/green] {name} → {status}")
+    else:
+        print(f"[red]Not found:[/red] {name}")
+        raise typer.Exit(1)
+
+
+@tracker_app.command("get")
+def tracker_get(
+    name: str = typer.Argument(help="Exact application name to look up"),
+    db: str = typer.Option(DEFAULT_DB, help="Path to SQLite database"),
+):
+    """Get a single application by exact name (JSON output for agent use)."""
+    conn = _connect(db)
+    row = conn.execute(
+        "SELECT name, status, job_id, applied_on, notes, updated_at FROM applications WHERE name=?",
+        (name,),
+    ).fetchone()
+    conn.close()
+    if row:
+        print(json.dumps(dict(row), ensure_ascii=False))
+    else:
+        print(json.dumps(None))
+        raise typer.Exit(1)
+
+
 @tracker_app.command("export")
 def tracker_export(
     format: str = typer.Option("csv", help="Export format: csv or json"),

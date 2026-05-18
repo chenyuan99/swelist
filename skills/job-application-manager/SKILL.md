@@ -177,9 +177,9 @@ STEP 3  Deduplicate
 
   IF tracker_backend == "sqlite":
     FOR each application:
-      row = sqlite3 SELECT name, status FROM applications WHERE name = ?
-      IF found: set existing_status, action = "update" or "skip"
-      ELSE:     action = "create"
+      result = swelist tracker get "<page_name>" --db DB_PATH
+      IF result is not null: set existing_status, action = "update" or "skip"
+      ELSE:                   action = "create"
 
 STEP 4  Apply changes
   IF tracker_backend == "notion":
@@ -187,8 +187,10 @@ STEP 4  Apply changes
     updates → notion_update_page per entry
 
   IF tracker_backend == "sqlite":
-    creates → INSERT OR IGNORE INTO applications (name, status, job_id, applied_on)
-    updates → UPDATE applications SET status=?, updated_at=datetime('now') WHERE name=?
+    FOR each create:
+      swelist tracker add "<name>" --status <status> --job-id <id> --applied-on <date> --db DB_PATH
+    FOR each update:
+      swelist tracker update "<name>" --status <status> --db DB_PATH
 
 STEP 5  Report
   print summary (see Report Format below)
@@ -250,25 +252,30 @@ Examples:
 
 ### SQLite — Create
 ```bash
-sqlite3 <DB_PATH> "INSERT OR IGNORE INTO applications (name, status, job_id, applied_on)
-  VALUES ('Amazon — SDE, AWS', 'In progress', '10414382', '2026-05-17');"
+swelist tracker add "Amazon — SDE, AWS" \
+  --status "In progress" \
+  --job-id 10414382 \
+  --applied-on 2026-05-17 \
+  --db <DB_PATH>
 ```
 
 ### SQLite — Update
 ```bash
-sqlite3 <DB_PATH> "UPDATE applications
-  SET status='Rejected', updated_at=datetime('now')
-  WHERE name='Amazon — SDE, AWS';"
+swelist tracker update "Amazon — SDE, AWS" \
+  --status "Rejected" \
+  --db <DB_PATH>
 ```
 
 ### SQLite — Search (dedup)
 ```bash
-sqlite3 -json <DB_PATH> "SELECT name, status FROM applications WHERE name='Amazon — SDE, AWS';"
+swelist tracker get "Amazon — SDE, AWS" --db <DB_PATH>
+# Returns JSON object if found, null if not found. Exit code 1 when not found.
 ```
 
 ### SQLite — List all
 ```bash
-sqlite3 -column -header <DB_PATH> "SELECT name, status, applied_on, updated_at FROM applications ORDER BY updated_at DESC;"
+swelist tracker list --db <DB_PATH>
+swelist tracker export --format json --db <DB_PATH>
 ```
 
 ---
