@@ -1,7 +1,7 @@
 ---
 name: Application Manager
 description: Sync job application statuses from Gmail into Notion or a local SQLite database
-version: 1.0.0
+version: 0.1.9
 metadata:
   openclaw:
     emoji: "📋"

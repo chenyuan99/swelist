@@ -1,7 +1,7 @@
 ---
 name: swelist
 description: retrieves tech internship and new-grad job postings; tracks job applications in local SQLite.
-version: 1.0.7
+version: 0.1.9
 homepage: https://pypi.org/project/swelist/
 metadata:
   openclaw:
