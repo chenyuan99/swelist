@@ -1,7 +1,7 @@
 ---
 name: swelist
-description: retrieves recently added technology internship and new‑graduate job postings.
-version: 1.0.3
+description: retrieves tech internship and new-grad job postings; tracks job applications in local SQLite.
+version: 1.0.7
 homepage: https://pypi.org/project/swelist/
 metadata:
   openclaw:
@@ -30,18 +30,27 @@ and automation systems.
 -   **Type:** Command-Line Interface (CLI)
 -   **Language:** Python
 -   **Distribution:** PyPI
--   **Execution Model:** Stateless, read-only
+-   **Execution Model:**
+    -   `swelist run` — stateless, read-only (fetches live data, no local state)
+    -   `swelist jobgpt` — stateless (calls OpenAI API, no local state)
+    -   `swelist tracker` — stateful (reads/writes local SQLite at `~/.offerplus/applications.db`)
 
 ------------------------------------------------------------------------
 
 ## Purpose
 
-`swelist` retrieves recently added technology internship and
-new‑graduate job postings from curated public GitHub repositories and
-renders them in a predictable, text-based format.
+`swelist` is a job-seeker CLI with three subcommand groups:
 
-It is optimized for: - Automation pipelines - Periodic polling agents -
-Human-in-the-loop job search workflows
+-   **`swelist run`** — retrieves recently added technology internship and
+    new‑graduate job postings from curated public GitHub repositories and
+    renders them in a predictable, text-based format.
+-   **`swelist jobgpt`** — AI-powered writing assistant for interview prep
+    (behavioral answers, "why this company", general career Q&A).
+-   **`swelist tracker`** — local SQLite application tracker; add, update,
+    query, list, and export job applications without any external account.
+
+It is optimized for: automation pipelines, periodic polling agents, and
+human-in-the-loop job search workflows.
 
 ------------------------------------------------------------------------
 
