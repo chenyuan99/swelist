@@ -1,6 +1,6 @@
 ---
 name: swelist
-description: retrieves recently added technology internship and new‑graduate job postings.
+description: Find software engineering internships and new-grad jobs from SimplifyJobs; track and sync applications via Gmail, Notion, or local SQLite
 homepage: https://pypi.org/project/swelist/
 metadata:
   {

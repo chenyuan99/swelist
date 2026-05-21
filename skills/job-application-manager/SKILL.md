@@ -1,7 +1,30 @@
 ---
 name: Application Manager
-description: Sync job application statuses from Gmail into Notion or a local SQLite database
+description: Auto-sync job application statuses from Gmail into Notion or SQLite — detects offers, rejections, and interview invitations automatically
 version: 0.1.9
+author: Yuan Chen
+repository: https://github.com/chenyuan99/swelist
+keywords:
+  - gmail
+  - notion
+  - job-applications
+  - application-tracker
+  - career-management
+  - offer-detection
+  - interview-tracker
+  - rejection-tracker
+  - job-status
+  - sync
+  - automation
+  - sqlite
+  - email-parsing
+  - career-tracker
+tags:
+  - career
+  - productivity
+  - gmail
+  - notion
+  - job-search
 metadata:
   openclaw:
     emoji: "📋"
@@ -29,11 +52,17 @@ metadata:
 ## When to Use This Skill
 
 Trigger when the user asks to:
-- Sync / refresh application emails from Gmail into their tracker
-- Update the status of one or more specific applications
-- Add new applications discovered in Gmail
-- Check what emails arrived from a specific company
-- Keywords: "update my application", "sync applications", "add to notion", "check my tracker", "update my sqlite tracker"
+
+- Sync or refresh job application emails from Gmail ("sync my applications", "check my job emails", "refresh my tracker")
+- Update the status of one or more specific applications ("mark Amazon as rejected", "I got an offer from Stripe", "update my application status")
+- Add new applications discovered in Gmail ("add this application to my tracker", "log this job email")
+- Check what emails arrived from a specific company ("did Google email me back?", "any updates from Meta?")
+- Track offers, rejections, or interview invitations automatically ("did I hear back from anyone?", "what's my interview pipeline?")
+- Sync applications into Notion ("add to my Notion tracker", "update my Notion job board")
+- Sync applications into a local SQLite database ("add to my sqlite tracker", "update my local tracker")
+- Export or review their full application pipeline ("show my application pipeline", "what's the status of all my applications?")
+
+Keywords: `sync applications`, `update my application`, `job tracker`, `application status`, `add to notion`, `update notion`, `check my tracker`, `update my sqlite tracker`, `got an offer`, `got rejected`, `interview invite`, `job emails`, `Gmail job sync`, `career tracker`, `application manager`, `track job applications`
 
 ---
 

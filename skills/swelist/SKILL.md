@@ -1,8 +1,29 @@
 ---
 name: swelist
-description: retrieves tech internship and new-grad job postings; tracks job applications in local SQLite.
+description: Find software engineering internships and new-grad jobs from SimplifyJobs; track applications in local SQLite — no account required
 version: 0.1.9
 homepage: https://pypi.org/project/swelist/
+author: Yuan Chen
+repository: https://github.com/chenyuan99/swelist
+keywords:
+  - internship
+  - new-grad
+  - job-search
+  - job-tracker
+  - tech-jobs
+  - software-engineering
+  - application-tracker
+  - sqlite
+  - career
+  - job-listings
+  - simplify-jobs
+  - job-finder
+  - swe-jobs
+  - cs-internship
+tags:
+  - career
+  - productivity
+  - job-search
 metadata:
   openclaw:
     emoji: "💼"
@@ -18,9 +39,24 @@ metadata:
 
 # swelist
 
-This document defines the operational capabilities, invocation contract,
-and usage semantics of the `swelist` CLI tool for AI agents, schedulers,
-and automation systems.
+`swelist` is a job-seeker CLI for finding software engineering internships and new-grad positions in real time, plus a local SQLite tracker for every application — no account, no API key, no subscription required. It pulls live data from SimplifyJobs, filters by role, location, and timeframe, and pairs with an AI writing assistant (`jobgpt`) for interview prep.
+
+------------------------------------------------------------------------
+
+## When to Use This Skill
+
+Trigger when the user asks to:
+
+- Find or browse internship openings ("show me tech internships this week", "any CS internships remote?")
+- Search for new-grad software engineering jobs ("new grad SWE jobs in NYC", "entry-level software engineer positions")
+- Filter job listings by location, company, or recency ("jobs in Seattle last 7 days", "remote internships last month")
+- Track a job application locally ("add Amazon SDE intern to my tracker", "log this application")
+- Update or check an application status ("mark Stripe offer as done", "set Google to rejected")
+- List or export tracked applications ("show all my applications", "export tracker as JSON")
+- Get AI interview prep answers ("why do you want to work at Meta?", "STAR answer for conflict question")
+- Get general career advice via jobgpt ("how do I negotiate salary?", "tips for my first internship")
+
+Keywords: `find internships`, `new grad jobs`, `job listings`, `job search`, `application tracker`, `track my application`, `update application status`, `swelist`, `job search CLI`, `software engineer jobs`, `tech internship`, `interview prep`, `STAR answer`, `why this company`
 
 ------------------------------------------------------------------------
 
