@@ -128,6 +128,28 @@ drop. Worth restoring "statuses" language in the next round.
 
 ---
 
+## Round 5 — Restore "statuses" language (regression fix)
+
+**Commit:** `5d00bfd`
+
+- Added "updates statuses" back into description while keeping "sync" lead
+- Final description: "Syncs job application emails from Gmail and updates statuses in your Notion or SQLite tracker — detects offers, rejections, and interview invitations"
+
+### Results
+
+| Query | Before | After |
+|---|---|---|
+| "application status tracker" | not ranked ↓ | **#1 (0.421)** ✅ restored |
+| "gmail job sync" | #1 (0.869) | #1 (0.868) — same |
+| "job application tracker" | #1 (0.421) | #1 (0.421) — same |
+| "notion job tracker" | #1 (0.875) | #1 (0.873) — same |
+
+**Lesson:** Restoring "statuses" recovered the regressed query with no cost to
+the gains from Round 4. The description now holds four ranked queries simultaneously.
+Both "sync" and "statuses" can coexist — word choice is additive, not zero-sum.
+
+---
+
 ## Key Findings
 
 ### What works
