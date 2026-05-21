@@ -1,5 +1,5 @@
 ---
-name: Application Manager
+name: Job Application Manager — Gmail & Notion Sync
 description: Reads your Gmail to find job application emails and updates your Notion or SQLite tracker with offer, rejection, and interview statuses automatically
 summary: >
   Use this skill to keep your job application tracker up to date without

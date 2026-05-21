@@ -1,5 +1,5 @@
 ---
-name: swelist
+name: Swelist — Tech Internship & Job Tracker
 description: Helps you find tech internships and new-grad jobs, track every application locally, and prep for interviews — no sign-up needed
 summary: >
   Use swelist to browse software engineering internships and new-graduate
