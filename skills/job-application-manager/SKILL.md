@@ -25,6 +25,7 @@ tags:
   - gmail
   - notion
   - job-search
+category: career
 metadata:
   openclaw:
     emoji: "📋"

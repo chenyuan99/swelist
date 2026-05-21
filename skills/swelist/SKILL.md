@@ -24,6 +24,7 @@ tags:
   - career
   - productivity
   - job-search
+category: career
 metadata:
   openclaw:
     emoji: "💼"
