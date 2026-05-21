@@ -101,15 +101,30 @@ changes have no effect on search scores.
 
 ## Round 4 — Description rewrite (sync-focused) for job-application-manager
 
-**Commit:** _(current)_
+**Commit:** `1449a6d`
 
 - Rewrote description to lead with "Syncs" and use "sync" language throughout
 - Rewrote summary to include: "sync your job applications from Gmail",
   "job pipeline", "career dashboard", "application spreadsheet", "email inbox"
 
-### Expected impact
-Better coverage for "gmail job sync", "sync applications gmail", and
-"application status tracker" queries.
+### Results
+
+| Query | Before | After |
+|---|---|---|
+| "gmail job sync" | not ranked | **#1 (0.869)** ✅ |
+| "notion job tracker" | #1 (0.877) | #1 (0.875) — same |
+| "job application tracker" | #1 (0.421) | #1 (0.421) — same |
+| "job offer rejection email" | #1 (0.421) | #1 (0.421) — same |
+| "job tracker" | #5 (0.421) | #5 (0.421) — same |
+| "sync applications gmail" | not ranked | not ranked |
+| "application status tracker" | #1 (0.421) | not ranked ↓ |
+
+**Lesson:** Leading with "sync" unlocked "gmail job sync" (#1 at 0.869) — a
+direct gain from the description rewrite. "sync applications gmail" (reversed
+word order) still misses, likely below clawhub's display threshold rather than
+a content gap. "application status tracker" regressed — the old description
+contained "updates…statuses" which matched that phrase; removing it caused the
+drop. Worth restoring "statuses" language in the next round.
 
 ---
 
