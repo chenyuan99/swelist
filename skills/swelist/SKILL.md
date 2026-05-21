@@ -1,6 +1,16 @@
 ---
 name: swelist
-description: Find software engineering internships and new-grad jobs from SimplifyJobs; track applications in local SQLite — no account required
+description: Helps you find tech internships and new-grad jobs, track every application locally, and prep for interviews — no sign-up needed
+summary: >
+  Use swelist to browse software engineering internships and new-graduate
+  positions sourced live from SimplifyJobs, filtered by location and
+  timeframe. Track every job application you have submitted in a local
+  SQLite database — add entries, mark statuses as in progress, rejected,
+  or done, add notes, and export your full pipeline as JSON or CSV.
+  Includes an AI writing assistant (jobgpt) for generating behavioral
+  interview answers in STAR format, compelling "why this company"
+  responses, and general career advice. Works offline for tracking;
+  no account, API key, or subscription required.
 version: 0.1.9
 homepage: https://pypi.org/project/swelist/
 author: Yuan Chen

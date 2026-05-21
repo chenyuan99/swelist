@@ -1,6 +1,17 @@
 ---
 name: Application Manager
-description: Auto-sync job application statuses from Gmail into Notion or SQLite — detects offers, rejections, and interview invitations automatically
+description: Reads your Gmail to find job application emails and updates your Notion or SQLite tracker with offer, rejection, and interview statuses automatically
+summary: >
+  Use this skill to keep your job application tracker up to date without
+  any manual effort. It searches your Gmail for emails from companies you
+  have applied to, determines whether each email signals an offer,
+  rejection, or interview invitation, and syncs the status into your
+  Notion database or local SQLite file. Handles any company's application
+  emails using sender patterns and subject-line signals. Supports both
+  Notion (cloud) and SQLite (local, no account required) as storage
+  backends. Deduplicates entries so running it multiple times is safe.
+  Great for keeping a career tracker, job pipeline, or application
+  spreadsheet automatically updated from your inbox.
 version: 0.1.9
 author: Yuan Chen
 repository: https://github.com/chenyuan99/swelist
