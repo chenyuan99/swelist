@@ -1,6 +1,6 @@
 ---
 name: Job Application Manager — Gmail & Notion Sync
-description: Syncs job application emails from Gmail into your Notion or SQLite tracker — auto-detects offers, rejections, and interview invitations
+description: Syncs job application emails from Gmail and updates statuses in your Notion or SQLite tracker — detects offers, rejections, and interview invitations
 summary: >
   Use this skill to sync your job applications automatically from Gmail
   into Notion or a local SQLite database. It scans your inbox for emails
