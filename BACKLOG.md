@@ -16,11 +16,11 @@ Features suggested but not yet implemented, in rough priority order.
 
 ### Medium priority
 
-- [ ] **Link extraction** — scan email bodies and footers for Greenhouse, Lever, Workday, and Ashby URLs and write them to the `Link` property automatically. Most ATS platforms have recognisable URL patterns (`boards.greenhouse.io`, `jobs.lever.co`, `apply.workday.com`). Currently the `Link` property exists in the schema but is never populated by the skill.
+- [x] **Link extraction** — scan email bodies and footers for Greenhouse, Lever, Workday, and Ashby URLs and write them to the `Link` property automatically. Most ATS platforms have recognisable URL patterns (`boards.greenhouse.io`, `jobs.lever.co`, `apply.workday.com`). Currently the `Link` property exists in the schema but is never populated by the skill.
 
-- [ ] **Auto-tag suggestions** — infer `Tags` values from email content: add `Referral` if the email mentions someone referring the applicant by name, `Remote` if the role description says remote, `Urgent` if a response deadline is mentioned. Present suggestions to the user before writing; never write Tags that aren't already in the Notion options list.
+- [x] **Auto-tag suggestions** — infer `Tags` values from email content: add `Referral` if the email mentions someone referring the applicant by name, `Remote` if the role description says remote, `Urgent` if a response deadline is mentioned. Present suggestions to the user before writing; never write Tags that aren't already in the Notion options list.
 
-- [ ] **Funnel summary in report** — after a full sync (no specific company given), print a one-line pipeline breakdown at the top of the report:
+- [x] **Funnel summary in report** — after a full sync (no specific company given), print a one-line pipeline breakdown at the top of the report:
   ```
   Pipeline: 8 Applied · 3 OA · 2 Interviewing · 1 Offer · 5 Rejected
   ```
