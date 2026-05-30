@@ -9,10 +9,10 @@ summary: >
   your tracker without any manual effort. Supports Gmail label filters and
   sender-pattern matching for accurate company detection. Works with both
   Notion (cloud career tracker) and SQLite (local, no account required).
-  Deduplicates entries so running it multiple times is safe. Ideal for
-  keeping a job pipeline, career dashboard, or application spreadsheet
-  up to date directly from your email inbox.
-version: 0.1.9
+  Deduplicates entries so running it multiple times is safe. When syncing
+  a specific company, it also enriches the Notion page with a timeline,
+  conversation notes, key contacts, and preparation suggestions.
+version: 0.2.0
 author: Yuan Chen
 repository: https://github.com/chenyuan99/swelist
 keywords:
@@ -73,6 +73,7 @@ Trigger when the user asks to:
 - Sync applications into Notion ("add to my Notion tracker", "update my Notion job board")
 - Sync applications into a local SQLite database ("add to my sqlite tracker", "update my local tracker")
 - Export or review their full application pipeline ("show my application pipeline", "what's the status of all my applications?")
+- Update a specific company's page with conversation details, contacts, or prep notes
 
 Keywords: `sync applications`, `update my application`, `job tracker`, `application status`, `add to notion`, `update notion`, `check my tracker`, `update my sqlite tracker`, `got an offer`, `got rejected`, `interview invite`, `job emails`, `Gmail job sync`, `career tracker`, `application manager`, `track job applications`
 
@@ -126,17 +127,37 @@ Add rows for any other companies the user has labeled. If no labels exist, rely 
 
 ## Config: Status Mapping
 
-Map email signals → status value (pick the **first** match):
+Map email signals → pipeline status value (pick the **first** match).
+The pipeline is ordered from early to late stage; never move a status *backwards*.
 
 | Priority | Signal (case-insensitive) | Status |
 |---|---|---|
-| 1 | "offer" OR "congratulations" OR "pleased to inform" OR "we'd like to extend" | `Done` |
-| 2 | "interview" OR "move forward" OR "next steps" OR "schedule" OR "hiring manager" | `In progress` |
-| 3 | "unable to move forward" OR "not selected" OR "no longer considering" OR "other candidates" OR "position has been filled" | `Rejected` |
-| 4 | "application received" OR "thank you for applying" OR "keep track" OR "under review" | `In progress` |
-| 5 | (no email found, only a job listing) | `Not started` |
+| 1 | "offer" OR "congratulations" OR "pleased to inform" OR "we'd like to extend" OR "offer letter" | `Offer` |
+| 2 | "on-site" OR "final round" OR "technical interview" OR "virtual interview" OR "interview loop" | `Interviewing` |
+| 3 | "schedule" OR "next steps" OR "move forward" OR "hiring manager" OR "phone interview" OR "video call" | `Interviewing` |
+| 4 | "online assessment" OR "coding challenge" OR "hackerrank" OR "codility" OR "take-home" OR "assessment link" | `OA` |
+| 5 | "recruiter" OR "phone screen" OR "initial screen" OR "introductory call" OR "talent acquisition" | `Recruiter screen` |
+| 6 | "unable to move forward" OR "not selected" OR "no longer considering" OR "other candidates" OR "position has been filled" OR "not moving forward" | `Rejected` |
+| 7 | "application received" OR "thank you for applying" OR "keep track" OR "under review" OR "successfully submitted" | `Applied / Received` |
+| 8 | (no email found, only a job listing) | `Applied / Received` |
 
 If multiple threads exist for the same role, use the **most recent** email's status.
+
+---
+
+## Config: Next Action Mapping
+
+Auto-set `Next action` when creating or updating a Notion page:
+
+| Status | Next action |
+|---|---|
+| `Applied / Received` | `Waiting` |
+| `OA` | `Prep` |
+| `Recruiter screen` | `Prep` |
+| `Interviewing` | `Prep` |
+| `Offer` | `Send availability` |
+| `Rejected` | _(leave blank / clear)_ |
+| `Withdrawn` | _(leave blank / clear)_ |
 
 ---
 
@@ -149,13 +170,30 @@ _(skip if tracker_backend is sqlite)_
 | Collection URL | `collection://<NOTION_DB_ID>` |
 | Parent ID (for creates) | `<NOTION_DB_ID>` |
 
-Expected schema:
+Expected schema (updated pipeline schema):
 
-| Property | Type | Allowed values |
+| Property | Type | Allowed values / notes |
 |---|---|---|
 | `Name` | title | `"Company — Role Title"` |
-| `status` | select | `Not started`, `In progress`, `Rejected`, `Done` |
-| `Tags` | multi-select | Only use values already in the options list |
+| `status` | select | `Applied / Received`, `OA`, `Recruiter screen`, `Interviewing`, `Offer`, `Rejected`, `Withdrawn` |
+| `Company` | multi-select | Company name (e.g. `Google`, `Amazon`) |
+| `Tags` | multi-select | Labels like `Referral`, `Remote`, `NYC`, `Top choice`, `Visa`, `OA`, `Onsite` |
+| `Applied on` | date | ISO date when first applied |
+| `Last touch` | date | Date of most recent email in the thread |
+| `Next action` | select | `Waiting`, `Prep`, `Follow up`, `Send availability` |
+| `Link` | url | Job posting URL or Greenhouse/application portal link |
+
+**If the database still uses the old schema** (status values `Not started`, `In progress`, `Done` instead of the pipeline above), notify the user and map as follows until they upgrade:
+
+| Old value | Maps to in old schema |
+|---|---|
+| `Applied / Received` | `In progress` |
+| `OA` | `In progress` |
+| `Recruiter screen` | `In progress` |
+| `Interviewing` | `In progress` |
+| `Offer` | `Done` |
+| `Rejected` | `Rejected` |
+| `Withdrawn` | `Rejected` |
 
 ---
 
@@ -166,7 +204,7 @@ _(skip if tracker_backend is notion)_
 ```sql
 CREATE TABLE IF NOT EXISTS applications (
   name        TEXT PRIMARY KEY,   -- "Company — Role Title"
-  status      TEXT NOT NULL,      -- Not started | In progress | Rejected | Done
+  status      TEXT NOT NULL,      -- pipeline status (see Status Mapping)
   job_id      TEXT,
   applied_on  TEXT,               -- ISO date YYYY-MM-DD
   notes       TEXT,
@@ -203,10 +241,12 @@ STEP 2  Parse threads → applications[]
     company_name = extract_company(thread)
     role_title   = extract_role(thread)
     status       = map_status(thread)       # use Status Mapping table above
+    next_action  = map_next_action(status)  # use Next Action Mapping table above
     date         = most_recent_message_date(thread)
+    applied_date = earliest_message_date(thread)
     job_id       = extract_job_id(thread)   # if present in email
     page_name    = f"{company_name} — {role_title}"
-    APPEND { page_name, status, date, job_id, thread_id }
+    APPEND { page_name, company_name, status, next_action, date, applied_date, job_id, thread_id }
 
 STEP 3  Deduplicate
   IF tracker_backend == "notion":
@@ -224,8 +264,8 @@ STEP 3  Deduplicate
 
 STEP 4  Apply changes
   IF tracker_backend == "notion":
-    creates → notion_create_pages(batch)
-    updates → notion_update_page per entry
+    creates → notion_create_pages(batch) with all new fields
+    updates → notion_update_page per entry with status, Last touch, Next action
 
   IF tracker_backend == "sqlite":
     FOR each create:
@@ -233,7 +273,28 @@ STEP 4  Apply changes
     FOR each update:
       swelist tracker update "<name>" --status <status> --db DB_PATH
 
-STEP 5  Report
+STEP 5  Enrich page content (Notion only, when company is given OR when status changed)
+  FOR each application that was created or updated (and tracker is notion):
+    fetch full thread via gmail_get_thread(thread_id)
+    extract:
+      timeline[]       = list of { date, event_summary } sorted chronologically
+      key_contacts[]   = list of { name, email, role } from From/Cc headers
+      conversation[]   = key quotes or summaries from each email in thread
+      prep_suggestions = generate 3-5 bullet prep suggestions based on status + role
+    Build structured page content:
+      ## Timeline
+      | Date | Event |
+      ...
+      ## Key Contacts
+      | Name | Email | Role |
+      ...
+      ## Conversation Notes
+      [bullet summary of each email in thread]
+      ## Preparation
+      [3-5 tailored bullet points based on company + role + stage]
+    notion_update_page(page_id, content=structured_content)
+
+STEP 6  Report
   print summary (see Report Format below)
 ```
 
@@ -247,7 +308,7 @@ FUNCTION build_query(company_key, date_range="newer_than:6m"):
   parts = []
   IF cfg.sender:   parts.append(f"from:{cfg.sender}")
   IF cfg.label_id: parts.append(f"label:{cfg.label_id}")
-  subject_terms = 'subject:application OR subject:interview OR subject:offer OR subject:position'
+  subject_terms = 'subject:application OR subject:interview OR subject:offer OR subject:position OR subject:assessment OR subject:next steps'
   RETURN f'({" OR ".join(parts)}) ({subject_terms}) {date_range}'
 ```
 
@@ -265,20 +326,45 @@ Examples:
   "data_source_id": "<NOTION_DB_ID>",
   "pages": [
     {
-      "properties": { "Name": "Amazon — SDE, AWS", "status": "In progress" },
-      "content": "Applied: <date>"
+      "properties": {
+        "Name": "Amazon — SDE, AWS",
+        "status": "Applied / Received",
+        "Company": ["Amazon"],
+        "Applied on": "2026-05-17",
+        "Last touch": "2026-05-17",
+        "Next action": "Waiting"
+      },
+      "content": "Applied: 2026-05-17\n\n## Timeline\n| Date | Event |\n|---|---|\n| 2026-05-17 | Application submitted |\n\n## Preparation\n- Research AWS products and services\n- Practice system design at scale"
     }
   ]
 }
 ```
 
-### Notion — Update (single)
+### Notion — Update (single, status + dates + next action)
 ```json
 {
   "page_id": "<page-id>",
   "command": "update_properties",
-  "properties": { "status": "Rejected" },
+  "properties": {
+    "status": "Interviewing",
+    "Last touch": "2026-05-28",
+    "Next action": "Prep"
+  },
   "content_updates": []
+}
+```
+
+### Notion — Update (single, full page enrichment)
+```json
+{
+  "page_id": "<page-id>",
+  "command": "update_properties",
+  "properties": {
+    "status": "Interviewing",
+    "Last touch": "2026-05-28",
+    "Next action": "Prep"
+  },
+  "content": "## Timeline\n| Date | Event |\n|---|---|\n| 2026-05-01 | Application submitted |\n| 2026-05-20 | Recruiter reached out |\n| 2026-05-28 | Interview scheduled for June 9 |\n\n## Key Contacts\n| Name | Email | Role |\n|---|---|---|\n| Jane Smith | jane@company.com | Recruiter |\n\n## Conversation Notes\n- 2026-05-28: Email from Jane Smith scheduling a technical interview for June 9 at 2pm PT.\n\n## Preparation\n- Review data structures and algorithms\n- Prepare STAR stories for behavioral questions\n- Research company mission and recent products\n- Practice whiteboard-style coding problems\n- Prepare 3–5 questions to ask the interviewer"
 }
 ```
 
@@ -294,7 +380,7 @@ Examples:
 ### SQLite — Create
 ```bash
 swelist tracker add "Amazon — SDE, AWS" \
-  --status "In progress" \
+  --status "Applied / Received" \
   --job-id 10414382 \
   --applied-on 2026-05-17 \
   --db <DB_PATH>
@@ -303,7 +389,7 @@ swelist tracker add "Amazon — SDE, AWS" \
 ### SQLite — Update
 ```bash
 swelist tracker update "Amazon — SDE, AWS" \
-  --status "Rejected" \
+  --status "Interviewing" \
   --db <DB_PATH>
 ```
 
@@ -346,10 +432,11 @@ Rules:
 Synced {N} application(s) on {date}  [{backend}: notion|sqlite]
 
 Created:
-  ✦ {Company} — {Role} → {status}
+  ✦ {Company} — {Role} → {status}  [next: {next_action}]
 
 Updated:
-  ↑ {Company} — {Role} → {new_status}  (was: {old_status})
+  ↑ {Company} — {Role} → {new_status}  (was: {old_status})  [next: {next_action}]
+  + Page enriched: timeline, key contacts, prep notes added
 
 Skipped (already up to date):
   · {Company} — {Role} → {status}
@@ -367,9 +454,13 @@ Errors:
 | Multiple threads for same role | Use most recent thread's status |
 | Role title not in email | Use job ID or "Role" as placeholder; note it in content/notes |
 | Company exists under a different name variant | Search by company name alone first, prompt user to confirm merge |
-| Email snippet enough to determine status | Skip full thread fetch to reduce API calls |
-| `Tags` value not in Notion options list | Omit `Tags`; do not create new options |
+| Email snippet enough to determine status | Skip full thread fetch for status; still fetch for page enrichment when company is given |
+| `Company` or `Tags` value not in Notion options list | Omit the field; do not create new options automatically |
 | Page name collision (same company, same title, different role) | Add disambiguator: `Amazon — SDE, AWS (Job ID 12345)` |
 | Notion DB ID or schema unknown | Fetch database URL with `notion-fetch` to inspect schema first |
+| Notion DB uses old 4-status schema | Map pipeline status to old values (see Config: Notion Database), notify user to upgrade |
 | SQLite DB does not exist | Run `swelist tracker init` or the CREATE TABLE statement before Step 3 |
 | SQLite DB path missing from profile.md | Use default `~/.offerplus/applications.db`; confirm with user |
+| Status would move backwards (e.g. Interviewing → Applied) | Keep existing status; only update Last touch date |
+| Key contacts not extractable from thread | Omit key contacts section; do not hallucinate names or emails |
+| No prep suggestions applicable | Omit Preparation section rather than generating generic advice |
