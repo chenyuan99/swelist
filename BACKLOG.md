@@ -28,6 +28,6 @@ Features suggested but not yet implemented, in rough priority order.
 
 ### Lower priority
 
-- [ ] **Fuzzy company dedup** — "Meta" and "Meta Platforms", "Google" and "Google DeepMind", etc. currently create separate rows. Add a company alias table (or edit-distance check with threshold ≤ 2) to detect these variants and prompt the user to confirm a merge before writing.
+- [x] **Fuzzy company dedup** — "Meta" and "Meta Platforms", "Google" and "Google DeepMind", etc. currently create separate rows. Add a company alias table (or edit-distance check with threshold ≤ 2) to detect these variants and prompt the user to confirm a merge before writing.
 
-- [ ] **Bulk re-enrichment mode** — add a `--enrich-all` flag (or trigger phrase "re-enrich all pages") that runs Step 5 page enrichment (timeline, key contacts, prep notes) against every existing Notion page, not just ones touched in the current sync run. Useful for pages created before v0.2.0 or via the old Notion AI flow.
+- [x] **Bulk re-enrichment mode** — add a `--enrich-all` flag (or trigger phrase "re-enrich all pages") that runs Step 5 page enrichment (timeline, key contacts, prep notes) against every existing Notion page, not just ones touched in the current sync run. Useful for pages created before v0.2.0 or via the old Notion AI flow.

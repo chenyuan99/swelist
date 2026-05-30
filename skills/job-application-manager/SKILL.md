@@ -16,8 +16,12 @@ summary: >
   follow-up. Extracts scheduled interview dates and optionally creates
   Google Calendar events. Auto-extracts ATS job links from email footers
   and infers tags (Referral, Remote, Urgent) from email content. Prints
-  a pipeline funnel summary after every full sync.
-version: 0.4.0
+  a pipeline funnel summary after every full sync. Uses a company alias
+  table and edit-distance matching to prevent duplicate rows when company
+  names vary (e.g. "Meta" vs "Meta Platforms"). Supports a bulk
+  re-enrichment mode that retrospectively adds timeline, contacts, and
+  prep notes to all existing Notion pages.
+version: 0.5.0
 author: Yuan Chen
 repository: https://github.com/chenyuan99/swelist
 keywords:
@@ -83,6 +87,7 @@ Trigger when the user asks to:
 - Export or review their full application pipeline ("show my application pipeline", "what's the status of all my applications?")
 - Update a specific company's page with conversation details, contacts, or prep notes
 - Flag stale applications that haven't had activity in 30+ days ("what's gone quiet?", "flag stale apps", "what needs follow-up?")
+- Re-enrich all existing Notion pages with timeline, contacts, and prep notes ("re-enrich all pages", "update all pages", "add prep notes to all my applications")
 
 Keywords: `sync applications`, `update my application`, `job tracker`, `application status`, `add to notion`, `update notion`, `check my tracker`, `update my sqlite tracker`, `got an offer`, `got rejected`, `interview invite`, `job emails`, `Gmail job sync`, `career tracker`, `application manager`, `track job applications`
 
@@ -213,6 +218,50 @@ When running non-interactively (bulk sync), write them silently and note in the 
 
 ---
 
+## Config: Company Aliases
+
+Used in Step 3 to match email-extracted company names against existing tracker entries.
+Check aliases **before** running edit-distance; aliases are authoritative.
+
+| Canonical name | Known aliases |
+|---|---|
+| `Meta` | Meta Platforms, Meta Platforms Inc., Facebook, Instagram |
+| `Google` | Google LLC, Alphabet, Google DeepMind, Google Cloud, YouTube |
+| `Amazon` | Amazon.com, Amazon Web Services, AWS |
+| `Microsoft` | Microsoft Corporation, Azure |
+| `Apple` | Apple Inc. |
+| `Netflix` | Netflix Inc. |
+| `Uber` | Uber Technologies, Uber Technologies Inc. |
+| `Lyft` | Lyft Inc. |
+| `Stripe` | Stripe Inc., Stripe Payments |
+| `Airbnb` | Airbnb Inc. |
+| `Coinbase` | Coinbase Global, Coinbase Inc. |
+| `Figma` | Figma Inc. |
+| `Notion` | Notion Labs, Notion Labs Inc. |
+| `OpenAI` | OpenAI Inc., OpenAI LP |
+| `Anthropic` | Anthropic PBC |
+
+Add rows to this table whenever the user encounters a new company variant and confirms a merge.
+Write updated rows back to `profile.md` under a `Company Aliases` table so they persist across runs.
+
+**Edit-distance fallback** (when no alias matches):
+
+```
+FUNCTION fuzzy_match(extracted_name, existing_names[]):
+  candidates = []
+  FOR each existing_name in existing_names:
+    dist = levenshtein(extracted_name.lower(), existing_name.lower())
+    IF dist <= 2 OR one_is_prefix_of_other(extracted_name, existing_name):
+      candidates.append((existing_name, dist))
+  RETURN sorted(candidates, by=dist)[:3]   # top 3 closest
+```
+
+If candidates found: present to user — "Found similar entry: '{existing}'. Is this the same company as '{extracted}'? (y/n)"
+- Yes → use existing page; write alias to profile.md for future runs
+- No → treat as new company; create new row
+
+---
+
 ## Config: Notion Database
 
 _(skip if tracker_backend is sqlite)_
@@ -254,7 +303,7 @@ Expected schema (updated pipeline schema):
 
 _(skip if tracker_backend is notion)_
 
-**Current (v0.3.0) schema:**
+**Current (v0.5.0) schema:**
 
 ```sql
 CREATE TABLE IF NOT EXISTS applications (
@@ -339,17 +388,43 @@ STEP 2  Parse threads → applications[]
     APPEND { page_name, company_name, status, next_action, date, applied_date,
              job_id, interview_date, link, suggested_tags, thread_id }
 
-STEP 3  Deduplicate
+STEP 3  Deduplicate (with fuzzy company matching)
   IF tracker_backend == "notion":
+    all_pages = notion_fetch(COLLECTION_URL)   # cache for reuse in Steps 6+7
+    existing_names = [p.name for p in all_pages]
     FOR each application:
-      existing = notion_search(query=application.page_name,
-                               data_source_url=COLLECTION_URL)
+      # 1. exact match
+      existing = find_exact(application.page_name, existing_names)
+      IF not found:
+        # 2. alias match on company portion
+        canonical = resolve_alias(application.company_name)  # Config: Company Aliases
+        existing = find_exact(canonical + " — " + role_title, existing_names)
+      IF not found:
+        # 3. edit-distance match on company name portion
+        company_candidates = fuzzy_match(application.company_name,
+                                         [extract_company(n) for n in existing_names])
+        IF company_candidates:
+          ask user to confirm merge (show top match + distance)
+          IF confirmed: existing = candidate; write alias to profile.md
       IF found: set existing_status, action = "update" or "skip"
       ELSE:     action = "create"
 
   IF tracker_backend == "sqlite":
+    existing_rows = sqlite3 DB_PATH "SELECT name, company, status FROM applications"
     FOR each application:
-      result = swelist tracker get "<page_name>" --db DB_PATH
+      # 1. exact match
+      result = find_exact(application.page_name, existing_rows)
+      IF not found:
+        # 2. alias match
+        canonical = resolve_alias(application.company_name)
+        result = find_exact(canonical + " — " + role_title, existing_rows)
+      IF not found:
+        # 3. edit-distance match on company column
+        company_candidates = fuzzy_match(application.company_name,
+                                         [r.company for r in existing_rows if r.company])
+        IF company_candidates:
+          ask user to confirm merge
+          IF confirmed: result = candidate; write alias to profile.md
       IF result is not null: set existing_status, action = "update" or "skip"
       ELSE:                   action = "create"
 
@@ -409,7 +484,7 @@ STEP 5  Enrich page content (Notion only, when company is given OR when status c
 STEP 6  Staleness detection
   stale_threshold = today - 30 days
   IF tracker_backend == "notion":
-    all_pages = notion_fetch(COLLECTION_URL)
+    # all_pages already fetched and cached in Step 3 — no second fetch needed
     stale = [p for p in all_pages
              if p.status NOT IN ("Rejected", "Withdrawn", "Offer")
              AND (p.last_touch < stale_threshold OR p.last_touch is null)
@@ -435,6 +510,66 @@ STEP 7  Report
     print funnel summary line (see Report Format below)
   print per-application summary (see Report Format below)
 ```
+
+---
+
+## Workflow: Bulk Re-enrichment Mode
+
+Triggered when the user says "re-enrich all pages", "add notes to all applications",
+"update all pages with prep notes", or uses the `--enrich-all` flag.
+
+Runs Step 5 enrichment (timeline, key contacts, conversation notes, prep suggestions)
+against **all existing** Notion pages, not just the ones touched in the current sync.
+Requires Notion backend. Skip gracefully if tracker_backend is sqlite (no page content).
+
+```
+INPUT: include_closed (default: false) — whether to enrich Rejected/Withdrawn pages
+
+STEP R0  Load profile (same as main STEP 0)
+
+STEP R1  Fetch all pages
+  all_pages = notion_fetch(COLLECTION_URL)
+  IF include_closed == false:
+    pages = [p for p in all_pages if p.status NOT IN ("Rejected", "Withdrawn")]
+  ELSE:
+    pages = all_pages
+  print: "Found {len(pages)} pages to enrich."
+
+STEP R2  Match pages to Gmail threads
+  FOR each page in pages:
+    company_name = extract_company_from_name(page.name)
+    role_title   = extract_role_from_name(page.name)
+    query        = build_query(company_name) with date_range="newer_than:12m"
+    threads      = gmail_search(query, max_results=5)
+    IF no threads found:
+      skip page; note in report as "no emails found"
+      CONTINUE
+    best_thread  = most_recent_thread(threads)
+    full_thread  = gmail_get_thread(best_thread.id)
+    STORE { page, full_thread }
+
+STEP R3  Enrich each page (same as main STEP 5)
+  FOR each { page, full_thread }:
+    extract timeline, key_contacts, conversation notes, prep_suggestions
+    notion_update_page(page.id, content=structured_content)
+    IF page.interview_date is null:
+      interview_date = extract_interview_date(full_thread)
+      IF found: notion_update_page(page.id, properties={"Interview date": interview_date})
+    IF page.link is null:
+      link = extract_link(full_thread)
+      IF found: notion_update_page(page.id, properties={"Link": link})
+
+STEP R4  Report
+  print:
+    Re-enriched: {N} pages
+      ✦ {Company} — {Role}  (+ interview date | + link | full notes)
+    Skipped (no emails): {M} pages
+      · {Company} — {Role}
+```
+
+**Rate-limiting note:** Enriching many pages will issue many API calls. Pause 1 second
+between Gmail thread fetches to avoid hitting rate limits. Process pages in batches
+of 10 and report progress after each batch.
 
 ---
 
@@ -632,6 +767,9 @@ Skipped (already up to date):
 Flagged as stale (no activity > 30 days → Follow up):
   ⏰ {Company} — {Role}  [last touch: {date}]
 
+Merged (fuzzy company match confirmed):
+  ⟳ "{extracted}" → matched to "{existing}"  [edit distance: {n}]
+
 Errors:
   ✕ {description of issue}
 ```
@@ -668,3 +806,11 @@ Errors:
 | Inferred tag is already on the page | Skip; do not duplicate |
 | Funnel counts fetched from Notion but all_pages is empty | Skip pipeline line; note "0 applications tracked" |
 | Funnel query when syncing a single company | Skip pipeline summary entirely |
+| Fuzzy match finds a candidate but user declines merge | Treat as new company; create new row; do not add alias |
+| Fuzzy match distance is 1 (e.g. "Gogle" vs "Google") | Still prompt user — never auto-merge without confirmation |
+| Two existing rows both match fuzzily (ambiguous) | Show top 2 candidates; let user pick or decline all |
+| Alias resolved but role title doesn't match | Do not merge — same company, different role is a different application |
+| Bulk re-enrichment on SQLite backend | Not supported; print "Page enrichment requires Notion backend" and exit |
+| Bulk re-enrichment: page has no matching Gmail thread | Skip; add to "no emails found" section of report |
+| Bulk re-enrichment: page already has rich content | Overwrite with fresh extraction — user triggered this explicitly |
+| Bulk re-enrichment: more than 50 pages to enrich | Warn user of expected time (~2 min per 10 pages); ask to confirm before proceeding |
