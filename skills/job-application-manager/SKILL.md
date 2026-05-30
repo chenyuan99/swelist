@@ -14,8 +14,10 @@ summary: >
   conversation notes, key contacts, and preparation suggestions. Detects
   stale applications (no email activity in 30+ days) and flags them for
   follow-up. Extracts scheduled interview dates and optionally creates
-  Google Calendar events.
-version: 0.3.0
+  Google Calendar events. Auto-extracts ATS job links from email footers
+  and infers tags (Referral, Remote, Urgent) from email content. Prints
+  a pipeline funnel summary after every full sync.
+version: 0.4.0
 author: Yuan Chen
 repository: https://github.com/chenyuan99/swelist
 keywords:
@@ -168,6 +170,49 @@ Auto-set `Next action` when creating or updating a Notion page:
 
 ---
 
+## Config: Link Extraction
+
+Scan the full email body (not just the snippet) for ATS application URLs.
+Use the **first** match from the priority list; stop once found.
+
+| Priority | Platform | URL pattern to match |
+|---|---|---|
+| 1 | Greenhouse | `boards.greenhouse.io/` OR `grnh.se/` |
+| 2 | Lever | `jobs.lever.co/` |
+| 3 | Workday | `apply.workday.com/` OR `myworkdayjobs.com/` |
+| 4 | Ashby | `jobs.ashbyhq.com/` |
+| 5 | SmartRecruiters | `jobs.smartrecruiters.com/` |
+| 6 | LinkedIn job posting | `linkedin.com/jobs/view/` |
+| 7 | Indeed job posting | `indeed.com/viewjob` OR `indeed.com/rc/clk` |
+| 8 | Any URL containing `/jobs/` or `/careers/` + company domain | e.g. `stripe.com/jobs/` |
+
+Rules:
+- Strip tracking parameters (`?gh_src=`, `?utm_*`, etc.) before saving.
+- If multiple ATS URLs found in one email, prefer the one matching the priority list first.
+- If no ATS URL found, set `link = null`; do not write the field.
+- Never fabricate or guess URLs.
+
+---
+
+## Config: Tag Inference
+
+Infer `Tags` values from the email body using these rules (all case-insensitive).
+**Only write tags that already exist in the Notion Tags options list** — check first, omit if not present.
+
+| Tag | Signals to look for |
+|---|---|
+| `Referral` | "referred by", "referral from", "your referral", "employee referral", or application link contains `ref=` / `referral` |
+| `Remote` | "remote", "fully remote", "work from home", "distributed team", "location: remote", "anywhere" |
+| `Urgent` | "respond by [date]", "deadline", "respond within [N] days", "as soon as possible", "ASAP" |
+| `Visa` | "visa sponsorship", "H-1B", "OPT", "CPT", "work authorization provided" |
+
+Present inferred tags to the user before writing when running interactively:
+> "Inferred tags: [Referral, Remote] — write to Notion? (y/n/edit)"
+
+When running non-interactively (bulk sync), write them silently and note in the report.
+
+---
+
 ## Config: Notion Database
 
 _(skip if tracker_backend is sqlite)_
@@ -221,7 +266,8 @@ CREATE TABLE IF NOT EXISTS applications (
   last_touch     TEXT,               -- ISO date of most recent email
   interview_date TEXT,               -- ISO date of next scheduled interview
   next_action    TEXT,               -- Waiting | Prep | Follow up | Send availability
-  link           TEXT,               -- job posting or portal URL
+  link           TEXT,               -- job posting or portal URL (ATS-extracted)
+  tags           TEXT,               -- comma-separated inferred tags e.g. "Referral,Remote"
   notes          TEXT,
   updated_at     TEXT DEFAULT (datetime('now'))
 );
@@ -235,6 +281,7 @@ ALTER TABLE applications ADD COLUMN last_touch     TEXT;
 ALTER TABLE applications ADD COLUMN interview_date TEXT;
 ALTER TABLE applications ADD COLUMN next_action    TEXT;
 ALTER TABLE applications ADD COLUMN link           TEXT;
+ALTER TABLE applications ADD COLUMN tags           TEXT;
 ```
 
 Run via: `sqlite3 <DB_PATH> < migration.sql`
@@ -282,9 +329,15 @@ STEP 2  Parse threads → applications[]
                      # scan body for patterns: "June 9", "Monday June 9 at 2pm PT",
                      # "scheduled for <date>", "your interview is on <date>"
                      # normalise to ISO date YYYY-MM-DD; set null if not found
+    link           = extract_link(thread)
+                     # match ATS URL patterns (see Config: Link Extraction)
+                     # strip tracking params; null if not found
+    suggested_tags = infer_tags(thread)
+                     # apply Tag Inference rules; returns list e.g. ["Referral","Remote"]
+                     # empty list if no signals found
     page_name      = f"{company_name} — {role_title}"
     APPEND { page_name, company_name, status, next_action, date, applied_date,
-             job_id, interview_date, thread_id }
+             job_id, interview_date, link, suggested_tags, thread_id }
 
 STEP 3  Deduplicate
   IF tracker_backend == "notion":
@@ -302,18 +355,24 @@ STEP 3  Deduplicate
 
 STEP 4  Apply changes
   IF tracker_backend == "notion":
-    creates → notion_create_pages(batch) with all new fields incl. Interview date
+    FOR each create/update:
+      confirm_tags = filter suggested_tags to only values in existing Notion Tags options
+      IF interactive AND confirm_tags not empty:
+        prompt user to confirm / edit tag suggestions
+    creates → notion_create_pages(batch) with all fields incl. Interview date, Link, Tags
     updates → notion_update_page per entry with status, Last touch, Next action,
-              Interview date (if extracted)
+              Interview date (if extracted), Link (if extracted, don't overwrite existing),
+              Tags (merge with any already on page; add new confirmed ones only)
 
   IF tracker_backend == "sqlite":
     FOR each create:
       sqlite3 DB_PATH "INSERT OR IGNORE INTO applications
-        (name,status,company,job_id,applied_on,last_touch,interview_date,next_action)
-        VALUES (?,?,?,?,?,?,?,?)"
+        (name,status,company,job_id,applied_on,last_touch,interview_date,next_action,link,tags)
+        VALUES (?,?,?,?,?,?,?,?,?,?)"
     FOR each update:
       sqlite3 DB_PATH "UPDATE applications SET status=?, last_touch=?,
         next_action=?, interview_date=COALESCE(?,interview_date),
+        link=COALESCE(?,link), tags=COALESCE(?,tags),
         updated_at=datetime('now') WHERE name=?"
 
 STEP 5  Enrich page content (Notion only, when company is given OR when status changed)
@@ -368,7 +427,13 @@ STEP 6  Staleness detection
         updated_at=datetime('now') WHERE name=?"
 
 STEP 7  Report
-  print summary (see Report Format below)
+  IF no specific company was given (full sync):
+    IF tracker_backend == "notion":
+      counts = tally status values from all_pages (fetched in Step 6)
+    IF tracker_backend == "sqlite":
+      counts = sqlite3 DB_PATH "SELECT status, COUNT(*) FROM applications GROUP BY status"
+    print funnel summary line (see Report Format below)
+  print per-application summary (see Report Format below)
 ```
 
 ---
@@ -403,10 +468,12 @@ Examples:
         "Name": "Amazon — SDE, AWS",
         "status": "Applied / Received",
         "Company": ["Amazon"],
+        "Tags": ["Referral"],
         "Applied on": "2026-05-17",
         "Last touch": "2026-05-17",
         "Interview date": null,
-        "Next action": "Waiting"
+        "Next action": "Waiting",
+        "Link": "https://boards.greenhouse.io/amazon/jobs/12345"
       },
       "content": "Applied: 2026-05-17\n\n## Timeline\n| Date | Event |\n|---|---|\n| 2026-05-17 | Application submitted |\n\n## Preparation\n- Research AWS products and services\n- Practice system design at scale"
     }
@@ -492,6 +559,12 @@ swelist tracker list --db <DB_PATH>
 swelist tracker export --format json --db <DB_PATH>
 ```
 
+### SQLite — Funnel summary query
+```bash
+sqlite3 ~/.offerplus/applications.db \
+  "SELECT status, COUNT(*) AS n FROM applications GROUP BY status ORDER BY n DESC;"
+```
+
 ### SQLite — Staleness query
 ```bash
 sqlite3 ~/.offerplus/applications.db \
@@ -536,15 +609,22 @@ Rules:
 ## Report Format
 
 ```
+Pipeline: {N} Applied · {N} OA · {N} Interviewing · {N} Offer · {N} Rejected
+  (omit pipeline line when syncing a single company)
+
 Synced {N} application(s) on {date}  [{backend}: notion|sqlite]
 
 Created:
   ✦ {Company} — {Role} → {status}  [next: {next_action}]
+    🔗 {link}  (omit if not found)
+    🏷  Tags: {tag1}, {tag2}  (omit if none inferred)
 
 Updated:
   ↑ {Company} — {Role} → {new_status}  (was: {old_status})  [next: {next_action}]
   + Page enriched: timeline, key contacts, prep notes added
   📅 Interview date: {date}  (calendar event created / skipped)
+  🔗 Link extracted: {link}  (omit if not found)
+  🏷  Tags added: {tag1}, {tag2}  (omit if none)
 
 Skipped (already up to date):
   · {Company} — {Role} → {status}
@@ -581,3 +661,10 @@ Errors:
 | SQLite DB exists but missing new columns (v0.2.x) | Run migration SQL automatically at Step 0 before proceeding |
 | Staleness check finds 0 stale rows | Omit the stale section from the report entirely |
 | next_action already "Follow up" | Skip staleness update for that row; it's already flagged |
+| ATS URL found but already saved in Link property | Do not overwrite existing value; preserve what was there |
+| Multiple ATS URLs in one email (e.g. Greenhouse + LinkedIn) | Use highest-priority match per Link Extraction table |
+| URL contains tracking params (`?gh_src=`, `?utm_*`) | Strip before saving; store clean canonical URL only |
+| Inferred tag not in Notion Tags options list | Silently omit; never create new Notion options |
+| Inferred tag is already on the page | Skip; do not duplicate |
+| Funnel counts fetched from Notion but all_pages is empty | Skip pipeline line; note "0 applications tracked" |
+| Funnel query when syncing a single company | Skip pipeline summary entirely |
