@@ -11,8 +11,11 @@ summary: >
   Notion (cloud career tracker) and SQLite (local, no account required).
   Deduplicates entries so running it multiple times is safe. When syncing
   a specific company, it also enriches the Notion page with a timeline,
-  conversation notes, key contacts, and preparation suggestions.
-version: 0.2.0
+  conversation notes, key contacts, and preparation suggestions. Detects
+  stale applications (no email activity in 30+ days) and flags them for
+  follow-up. Extracts scheduled interview dates and optionally creates
+  Google Calendar events.
+version: 0.3.0
 author: Yuan Chen
 repository: https://github.com/chenyuan99/swelist
 keywords:
@@ -50,6 +53,9 @@ metadata:
         - name: claude_ai_Notion
           reason: Create and update application entries in Notion
           optional: true
+        - name: claude_ai_Google_Calendar
+          reason: Create calendar events for scheduled interviews
+          optional: true
     config:
       - key: tracker_backend
         description: Storage backend — notion or sqlite
@@ -74,6 +80,7 @@ Trigger when the user asks to:
 - Sync applications into a local SQLite database ("add to my sqlite tracker", "update my local tracker")
 - Export or review their full application pipeline ("show my application pipeline", "what's the status of all my applications?")
 - Update a specific company's page with conversation details, contacts, or prep notes
+- Flag stale applications that haven't had activity in 30+ days ("what's gone quiet?", "flag stale apps", "what needs follow-up?")
 
 Keywords: `sync applications`, `update my application`, `job tracker`, `application status`, `add to notion`, `update notion`, `check my tracker`, `update my sqlite tracker`, `got an offer`, `got rejected`, `interview invite`, `job emails`, `Gmail job sync`, `career tracker`, `application manager`, `track job applications`
 
@@ -180,6 +187,7 @@ Expected schema (updated pipeline schema):
 | `Tags` | multi-select | Labels like `Referral`, `Remote`, `NYC`, `Top choice`, `Visa`, `OA`, `Onsite` |
 | `Applied on` | date | ISO date when first applied |
 | `Last touch` | date | Date of most recent email in the thread |
+| `Interview date` | date | Parsed date of the next scheduled interview (if any) |
 | `Next action` | select | `Waiting`, `Prep`, `Follow up`, `Send availability` |
 | `Link` | url | Job posting URL or Greenhouse/application portal link |
 
@@ -201,16 +209,38 @@ Expected schema (updated pipeline schema):
 
 _(skip if tracker_backend is notion)_
 
+**Current (v0.3.0) schema:**
+
 ```sql
 CREATE TABLE IF NOT EXISTS applications (
-  name        TEXT PRIMARY KEY,   -- "Company — Role Title"
-  status      TEXT NOT NULL,      -- pipeline status (see Status Mapping)
-  job_id      TEXT,
-  applied_on  TEXT,               -- ISO date YYYY-MM-DD
-  notes       TEXT,
-  updated_at  TEXT DEFAULT (datetime('now'))
+  name           TEXT PRIMARY KEY,   -- "Company — Role Title"
+  status         TEXT NOT NULL,      -- pipeline status (see Status Mapping)
+  job_id         TEXT,
+  company        TEXT,
+  applied_on     TEXT,               -- ISO date YYYY-MM-DD
+  last_touch     TEXT,               -- ISO date of most recent email
+  interview_date TEXT,               -- ISO date of next scheduled interview
+  next_action    TEXT,               -- Waiting | Prep | Follow up | Send availability
+  link           TEXT,               -- job posting or portal URL
+  notes          TEXT,
+  updated_at     TEXT DEFAULT (datetime('now'))
 );
 ```
+
+**Migration from v0.2.x** (run once if the DB already exists):
+
+```sql
+ALTER TABLE applications ADD COLUMN company        TEXT;
+ALTER TABLE applications ADD COLUMN last_touch     TEXT;
+ALTER TABLE applications ADD COLUMN interview_date TEXT;
+ALTER TABLE applications ADD COLUMN next_action    TEXT;
+ALTER TABLE applications ADD COLUMN link           TEXT;
+```
+
+Run via: `sqlite3 <DB_PATH> < migration.sql`
+Or inline: `sqlite3 ~/.offerplus/applications.db "ALTER TABLE applications ADD COLUMN last_touch TEXT; ..."`
+
+At Step 0, check whether `last_touch` column exists (`PRAGMA table_info(applications)`) and run the migration automatically if not.
 
 ---
 
@@ -222,7 +252,10 @@ INPUT: company (optional), date_range (default: newer_than:6m)
 STEP 0  Load profile
   Read profile.md → extract tracker_backend, CAREER_EMAIL, label table
   IF tracker_backend == "notion":  resolve NOTION_DB_ID, COLLECTION_URL
-  IF tracker_backend == "sqlite":  resolve DB_PATH; run init if DB does not exist
+  IF tracker_backend == "sqlite":
+    resolve DB_PATH; run init if DB does not exist
+    check PRAGMA table_info(applications) for last_touch column
+    IF missing: run migration SQL (see Config: SQLite Schema)
   IF any required field blank: collect from user → write to profile.md → continue
   IF company given AND not in label table:
     run list_labels → confirm with user → append to profile.md label table
@@ -238,15 +271,20 @@ STEP 1  Search Gmail
 
 STEP 2  Parse threads → applications[]
   FOR each thread:
-    company_name = extract_company(thread)
-    role_title   = extract_role(thread)
-    status       = map_status(thread)       # use Status Mapping table above
-    next_action  = map_next_action(status)  # use Next Action Mapping table above
-    date         = most_recent_message_date(thread)
-    applied_date = earliest_message_date(thread)
-    job_id       = extract_job_id(thread)   # if present in email
-    page_name    = f"{company_name} — {role_title}"
-    APPEND { page_name, company_name, status, next_action, date, applied_date, job_id, thread_id }
+    company_name   = extract_company(thread)
+    role_title     = extract_role(thread)
+    status         = map_status(thread)         # use Status Mapping table above
+    next_action    = map_next_action(status)    # use Next Action Mapping table above
+    date           = most_recent_message_date(thread)
+    applied_date   = earliest_message_date(thread)
+    job_id         = extract_job_id(thread)     # if present in email
+    interview_date = extract_interview_date(thread)
+                     # scan body for patterns: "June 9", "Monday June 9 at 2pm PT",
+                     # "scheduled for <date>", "your interview is on <date>"
+                     # normalise to ISO date YYYY-MM-DD; set null if not found
+    page_name      = f"{company_name} — {role_title}"
+    APPEND { page_name, company_name, status, next_action, date, applied_date,
+             job_id, interview_date, thread_id }
 
 STEP 3  Deduplicate
   IF tracker_backend == "notion":
@@ -264,14 +302,19 @@ STEP 3  Deduplicate
 
 STEP 4  Apply changes
   IF tracker_backend == "notion":
-    creates → notion_create_pages(batch) with all new fields
-    updates → notion_update_page per entry with status, Last touch, Next action
+    creates → notion_create_pages(batch) with all new fields incl. Interview date
+    updates → notion_update_page per entry with status, Last touch, Next action,
+              Interview date (if extracted)
 
   IF tracker_backend == "sqlite":
     FOR each create:
-      swelist tracker add "<name>" --status <status> --job-id <id> --applied-on <date> --db DB_PATH
+      sqlite3 DB_PATH "INSERT OR IGNORE INTO applications
+        (name,status,company,job_id,applied_on,last_touch,interview_date,next_action)
+        VALUES (?,?,?,?,?,?,?,?)"
     FOR each update:
-      swelist tracker update "<name>" --status <status> --db DB_PATH
+      sqlite3 DB_PATH "UPDATE applications SET status=?, last_touch=?,
+        next_action=?, interview_date=COALESCE(?,interview_date),
+        updated_at=datetime('now') WHERE name=?"
 
 STEP 5  Enrich page content (Notion only, when company is given OR when status changed)
   FOR each application that was created or updated (and tracker is notion):
@@ -294,7 +337,37 @@ STEP 5  Enrich page content (Notion only, when company is given OR when status c
       [3-5 tailored bullet points based on company + role + stage]
     notion_update_page(page_id, content=structured_content)
 
-STEP 6  Report
+    IF interview_date is not null AND Google Calendar MCP is available:
+      ask user: "Create a calendar event for <company> interview on <date>?"
+      IF yes:
+        google_calendar_create_event(
+          summary  = "<company> — <role> Interview",
+          start    = interview_date + "T09:00:00",  # use extracted time if available
+          end      = interview_date + "T10:00:00",
+          description = "Application tracked in 2026 Career Notion database."
+        )
+
+STEP 6  Staleness detection
+  stale_threshold = today - 30 days
+  IF tracker_backend == "notion":
+    all_pages = notion_fetch(COLLECTION_URL)
+    stale = [p for p in all_pages
+             if p.status NOT IN ("Rejected", "Withdrawn", "Offer")
+             AND (p.last_touch < stale_threshold OR p.last_touch is null)
+             AND p.next_action != "Follow up"]
+    FOR each stale page:
+      notion_update_page(page_id, properties={"Next action": "Follow up"})
+
+  IF tracker_backend == "sqlite":
+    stale = sqlite3 DB_PATH "SELECT name, status, last_touch FROM applications
+      WHERE status NOT IN ('Rejected','Withdrawn','Offer')
+      AND (date(COALESCE(last_touch, updated_at)) < date('now','-30 days'))
+      AND COALESCE(next_action,'') != 'Follow up'"
+    FOR each stale row:
+      sqlite3 DB_PATH "UPDATE applications SET next_action='Follow up',
+        updated_at=datetime('now') WHERE name=?"
+
+STEP 7  Report
   print summary (see Report Format below)
 ```
 
@@ -332,6 +405,7 @@ Examples:
         "Company": ["Amazon"],
         "Applied on": "2026-05-17",
         "Last touch": "2026-05-17",
+        "Interview date": null,
         "Next action": "Waiting"
       },
       "content": "Applied: 2026-05-17\n\n## Timeline\n| Date | Event |\n|---|---|\n| 2026-05-17 | Application submitted |\n\n## Preparation\n- Research AWS products and services\n- Practice system design at scale"
@@ -348,7 +422,20 @@ Examples:
   "properties": {
     "status": "Interviewing",
     "Last touch": "2026-05-28",
+    "Interview date": "2026-06-09",
     "Next action": "Prep"
+  },
+  "content_updates": []
+}
+```
+
+### Notion — Update (single, staleness flag)
+```json
+{
+  "page_id": "<page-id>",
+  "command": "update_properties",
+  "properties": {
+    "Next action": "Follow up"
   },
   "content_updates": []
 }
@@ -405,6 +492,26 @@ swelist tracker list --db <DB_PATH>
 swelist tracker export --format json --db <DB_PATH>
 ```
 
+### SQLite — Staleness query
+```bash
+sqlite3 ~/.offerplus/applications.db \
+  "SELECT name, status, COALESCE(last_touch, updated_at) AS last_activity
+   FROM applications
+   WHERE status NOT IN ('Rejected','Withdrawn','Offer')
+   AND date(COALESCE(last_touch, updated_at)) < date('now','-30 days')
+   ORDER BY last_activity ASC;"
+```
+
+### Google Calendar — Create interview event
+```json
+{
+  "summary": "Applied Intuition — Software Engineer Interview",
+  "start": { "dateTime": "2026-06-09T14:00:00", "timeZone": "America/Los_Angeles" },
+  "end":   { "dateTime": "2026-06-09T15:00:00", "timeZone": "America/Los_Angeles" },
+  "description": "Application tracked in 2026 Career Notion database."
+}
+```
+
 ---
 
 ## Naming Convention
@@ -437,9 +544,13 @@ Created:
 Updated:
   ↑ {Company} — {Role} → {new_status}  (was: {old_status})  [next: {next_action}]
   + Page enriched: timeline, key contacts, prep notes added
+  📅 Interview date: {date}  (calendar event created / skipped)
 
 Skipped (already up to date):
   · {Company} — {Role} → {status}
+
+Flagged as stale (no activity > 30 days → Follow up):
+  ⏰ {Company} — {Role}  [last touch: {date}]
 
 Errors:
   ✕ {description of issue}
@@ -464,3 +575,9 @@ Errors:
 | Status would move backwards (e.g. Interviewing → Applied) | Keep existing status; only update Last touch date |
 | Key contacts not extractable from thread | Omit key contacts section; do not hallucinate names or emails |
 | No prep suggestions applicable | Omit Preparation section rather than generating generic advice |
+| Interview date ambiguous (e.g. "sometime next week") | Set interview_date to null; note ambiguity in conversation notes |
+| Interview date already in the past | Still write it to the page; do not create a calendar event for past dates |
+| Google Calendar MCP not connected | Skip calendar event creation; note it in the report |
+| SQLite DB exists but missing new columns (v0.2.x) | Run migration SQL automatically at Step 0 before proceeding |
+| Staleness check finds 0 stale rows | Omit the stale section from the report entirely |
+| next_action already "Follow up" | Skip staleness update for that row; it's already flagged |
