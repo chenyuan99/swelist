@@ -51,9 +51,9 @@ Paste resume text here, or provide a file path:
 
 _(only needed when tracker backend is notion)_
 
-- **Career tracker database ID:** _(UUID from the Notion database URL)_
-- **Career tracker URL:**
-- **Collection URL:** `collection://<paste database ID above>`
+- **Career tracker database ID:** 907c5aee-775a-4818-8893-4afbb4e1a226
+- **Career tracker URL:** https://www.notion.so/907c5aee775a481888934afbb4e1a226
+- **Collection URL:** `collection://95c6deec-bc41-47f3-afcd-d20db3f8eb67`
 
 ### Gmail Labels
 
