@@ -22,6 +22,7 @@ GLOBAL_FILES=(
 claude_skill_name() {
   case "$1" in
     job-application-manager) echo "application-manager" ;;
+    interview-prep) echo "interview-prep" ;;
     *) echo "$1" ;;
   esac
 }
