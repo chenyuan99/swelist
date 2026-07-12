@@ -3,11 +3,14 @@ import io
 import json
 import os
 import sqlite3
+import webbrowser
 from typing import Optional
 
 import typer
 from rich import print
 from rich.table import Table
+
+from swelist.report import build_report
 
 tracker_app = typer.Typer(help="Local SQLite job application tracker")
 
@@ -197,3 +200,32 @@ def tracker_export(
         writer.writeheader()
         writer.writerows([dict(r) for r in rows])
         print(buf.getvalue(), end="")
+
+
+@tracker_app.command("report")
+def tracker_report(
+    output: str = typer.Argument("reports/application-dashboard.html", help="Output path for the HTML dashboard"),
+    db: str = typer.Option(DEFAULT_DB, help="Path to SQLite database"),
+    open_browser: bool = typer.Option(False, "--open", help="Open the dashboard in your default browser"),
+):
+    """Generate a self-contained HTML dashboard from the tracker database."""
+    if not os.path.exists(db):
+        print(f"[red]No tracker database found at {db}. Run 'swelist tracker init' first.[/red]")
+        raise typer.Exit(1)
+
+    stats = build_report(db, output)
+
+    print(f"[green]Dashboard generated:[/green] {output}")
+    if stats["total"] == 0:
+        print("[yellow]No applications tracked yet.[/yellow]")
+    else:
+        buckets = stats["by_bucket"]
+        print(
+            f"Total: {stats['total']} · Active: {buckets.get('Active', 0)} · "
+            f"Interview: {buckets.get('Interview', 0)} · Offer: {buckets.get('Offer', 0)} · "
+            f"Hired: {buckets.get('Hired', 0)} · Rejected/Closed: {buckets.get('Rejected/Closed', 0)}"
+        )
+        print(f"Funnel: {stats['funnel_pct']}% progressed past resume screen")
+
+    if open_browser:
+        webbrowser.open(f"file://{os.path.abspath(output)}")

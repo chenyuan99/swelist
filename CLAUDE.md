@@ -19,6 +19,7 @@ swelist tracker update "Co — Role" --status "Rejected"
 swelist tracker get "Co — Role" # JSON lookup (exit 1 if not found)
 swelist tracker list            # display all tracked applications
 swelist tracker export --format json
+swelist tracker report          # generate a self-contained HTML dashboard
 ```
 
 Python 3.9–3.12 supported. Install dev deps: `pip install -r requirements.txt`
@@ -31,7 +32,8 @@ Python 3.9–3.12 supported. Install dev deps: `pip install -r requirements.txt`
 swelist/               Python package (CLI source)
   main.py              swelist run — job listings from SimplifyJobs GitHub repos
   jobgpt.py            swelist jobgpt — OpenAI-powered interview prep subcommands
-  tracker.py           swelist tracker — local SQLite application tracker (add/update/get/list/export)
+  tracker.py           swelist tracker — local SQLite application tracker (add/update/get/list/export/report)
+  report.py            HTML dashboard generator used by `swelist tracker report`
   agent.py             prototype: parses swelist output into JSON via LLM
 tests/                 pytest suite
 skills/                Claude Code skill files (see Skill System below)
@@ -52,12 +54,13 @@ README.md              user-facing documentation
 Three top-level commands:
 - `swelist run` — fetches live job JSON from GitHub, filters by timeframe/location, prints plain text
 - `swelist jobgpt <subcommand>` — delegates to `swelist/jobgpt.py` (requires `openai` extra)
-- `swelist tracker <subcommand>` — local SQLite application tracker (`swelist/tracker.py`); subcommands: `init`, `add`, `update`, `get`, `list`, `export`
+- `swelist tracker <subcommand>` — local SQLite application tracker (`swelist/tracker.py`); subcommands: `init`, `add`, `update`, `get`, `list`, `export`, `report`
 
 **Key conventions**:
 - Output is always plain text to stdout — no JSON, no color — so it can be piped to agents
 - No local state, no auth required for `swelist run`
 - `OPENAI_API_KEY` env var required only for jobgpt subcommands
+- `swelist tracker report` is the one command that writes a file (a self-contained HTML dashboard, default `reports/application-dashboard.html`) rather than only printing to stdout; it reads via `swelist/report.py` and adapts to whichever tracker schema columns exist (base v0.2.x or the richer v0.5.0 set with `company`/`tags`/`next_action`/etc.) — see `skills/html-report/SKILL.md` for the equivalent Claude-skill version of the same report
 
 ---
 
@@ -128,7 +131,8 @@ The `application-manager` skill needs these MCP tools allowed in `.claude/settin
 pytest                          # all tests
 pytest tests/test_main.py       # job listing tests only
 pytest tests/test_jobgpt.py     # jobgpt tests only (mocks OpenAI)
-pytest tests/test_tracker.py    # tracker tests (21 tests, 100% coverage)
+pytest tests/test_tracker.py    # tracker CLI tests (28 tests, 100% coverage)
+pytest tests/test_report.py     # HTML dashboard generator tests (report.py, 99% coverage)
 pytest --co -q                  # list all test names without running
 ```
 

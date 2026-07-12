@@ -227,3 +227,54 @@ class TestTrackerExport:
         assert row["status"] == "In progress"
         assert row["job_id"] == "10414382"
         assert row["applied_on"] == "2026-05-17"
+
+
+class TestTrackerReport:
+    def test_report_writes_html_file(self, populated_db, tmp_path):
+        output = str(tmp_path / "dashboard.html")
+        result = runner.invoke(tracker_app, ["report", output, "--db", populated_db])
+        assert result.exit_code == 0
+        assert "Dashboard generated" in result.output
+        assert os.path.exists(output)
+        with open(output, encoding="utf-8") as f:
+            assert f.read().startswith("<!doctype html>")
+
+    def test_report_prints_bucket_summary(self, populated_db, tmp_path):
+        output = str(tmp_path / "dashboard.html")
+        result = runner.invoke(tracker_app, ["report", output, "--db", populated_db])
+        assert "Total: 4" in result.output
+        assert "Funnel:" in result.output
+
+    def test_report_default_output_path(self, populated_db, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(tracker_app, ["report", "--db", populated_db])
+        assert result.exit_code == 0
+        assert os.path.exists(tmp_path / "reports" / "application-dashboard.html")
+
+    def test_report_empty_db(self, db_path, tmp_path):
+        output = str(tmp_path / "dashboard.html")
+        result = runner.invoke(tracker_app, ["report", output, "--db", db_path])
+        assert result.exit_code == 0
+        assert "No applications tracked yet" in result.output
+
+    def test_report_missing_db(self, tmp_path):
+        missing = str(tmp_path / "does-not-exist.db")
+        output = str(tmp_path / "dashboard.html")
+        result = runner.invoke(tracker_app, ["report", output, "--db", missing])
+        assert result.exit_code == 1
+        assert "No tracker database found" in result.output
+        assert not os.path.exists(output)
+
+    def test_report_open_flag_launches_browser(self, populated_db, tmp_path, mocker):
+        output = str(tmp_path / "dashboard.html")
+        mock_open = mocker.patch("swelist.tracker.webbrowser.open")
+        result = runner.invoke(tracker_app, ["report", output, "--db", populated_db, "--open"])
+        assert result.exit_code == 0
+        mock_open.assert_called_once()
+        assert output in mock_open.call_args[0][0]
+
+    def test_report_without_open_flag_does_not_launch_browser(self, populated_db, tmp_path, mocker):
+        output = str(tmp_path / "dashboard.html")
+        mock_open = mocker.patch("swelist.tracker.webbrowser.open")
+        runner.invoke(tracker_app, ["report", output, "--db", populated_db])
+        mock_open.assert_not_called()
