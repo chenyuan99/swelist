@@ -16,6 +16,7 @@ A CLI tool for job seekers to track tech internships and new-grad positions. Dat
 - View company name, job title, location, and application link
 - Real-time data from GitHub repositories
 - Local SQLite application tracker (`swelist tracker`)
+- Export career profile to HTML (`swelist profile`)
 - AI-powered interview prep via `swelist jobgpt`
 
 ## Installation
@@ -73,7 +74,30 @@ swelist tracker list --status "In progress" --company amazon
 # Export
 swelist tracker export --format json
 swelist tracker export --format csv
+
+# Generate HTML dashboard
+swelist tracker report
 ```
+
+### Career Profile
+
+Export your career profile to a professional HTML page:
+
+```bash
+# Generate profile from ~/.claude/profile.md
+swelist profile report
+
+# Save to custom location
+swelist profile report --output=my-profile.html
+```
+
+The HTML file includes:
+- Personal info (name, email, LinkedIn, location)
+- Career profile (target roles, companies, locations, salary)
+- Resume preview
+- Integration settings
+
+Perfect for sharing with recruiters, colleagues, or keeping as an offline reference.
 
 ### Agent Integration
 
