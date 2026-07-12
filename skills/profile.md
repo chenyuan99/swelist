@@ -75,6 +75,7 @@ Which sections each skill uses — so you know what to fill in:
 | Skill | Sections needed |
 |---|---|
 | `application-manager` | Integrations (Tracker Backend + Gmail + Notion or SQLite), Personal Info (career email) |
+| `html-report` | Integrations (Tracker Backend — requires SQLite) |
 | `resume-tailor` | Personal Info, Career Profile, Resume |
 | `cover-letter-generator` | Personal Info, Career Profile, Resume |
 | `interview-prep-generator` | Personal Info, Career Profile, Resume |
