@@ -23,8 +23,10 @@ app = typer.Typer()
 
 from swelist.jobgpt import jobgpt_app
 from swelist.tracker import tracker_app
+from swelist.profile_cli import profile_app
 app.add_typer(jobgpt_app, name="jobgpt")
 app.add_typer(tracker_app, name="tracker")
+app.add_typer(profile_app, name="profile")
 
 __version__ = "0.1.9"
 

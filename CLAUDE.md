@@ -20,6 +20,7 @@ swelist tracker get "Co — Role" # JSON lookup (exit 1 if not found)
 swelist tracker list            # display all tracked applications
 swelist tracker export --format json
 swelist tracker report          # generate a self-contained HTML dashboard
+swelist profile report          # generate an HTML career profile from profile.md
 ```
 
 Python 3.9–3.12 supported. Install dev deps: `pip install -r requirements.txt`
@@ -33,7 +34,9 @@ swelist/               Python package (CLI source)
   main.py              swelist run — job listings from SimplifyJobs GitHub repos
   jobgpt.py            swelist jobgpt — OpenAI-powered interview prep subcommands
   tracker.py           swelist tracker — local SQLite application tracker (add/update/get/list/export/report)
+  profile_cli.py       swelist profile — career profile report subcommands
   report.py            HTML dashboard generator used by `swelist tracker report`
+  profile.py           HTML career profile generator used by `swelist profile report`
   agent.py             prototype: parses swelist output into JSON via LLM
 tests/                 pytest suite
 skills/                Claude Code skill files (see Skill System below)
