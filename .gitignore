@@ -49,3 +49,6 @@ build/
 # Misc
 .DS_Store
 *.log
+
+# Generated reports (personal output, e.g. from the html-report skill)
+reports/
